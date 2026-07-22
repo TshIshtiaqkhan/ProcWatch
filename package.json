@@ -28,6 +28,10 @@
       {
         "from": "backend/src/migrations.sql",
         "to": "migrations.sql"
+      },
+      {
+        "from": "assets/icon",
+        "to": "assets/icon"
       }
     ],
     "linux": {

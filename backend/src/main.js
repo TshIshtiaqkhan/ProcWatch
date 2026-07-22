@@ -9,6 +9,11 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+
+// Resolve app icon — works in both dev (project root) and packaged (asar) mode
+const appIconPath = app.isPackaged
+  ? path.join(process.resourcesPath, "assets", "icon", "256x256.png")
+  : path.join(__dirname, "..", "..", "assets", "icon", "256x256.png");
 const { execFile } = require("child_process");
 const {
   initDatabase,
@@ -363,6 +368,7 @@ function registerIpcHandlers() {
 Type=Application
 Name=Screen Time Tracker
 Exec=${execPath}
+Icon=${appIconPath}
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
@@ -536,10 +542,31 @@ async function createWindow() {
     cachedSettings.start_minimized === "true" &&
     cachedSettings.first_run_complete === "true";
 
+  // Build a multi-resolution icon for best Linux/X11 compatibility
+  const iconDir = app.isPackaged
+    ? path.join(process.resourcesPath, "assets", "icon")
+    : path.join(__dirname, "..", "..", "assets", "icon");
+  const iconSizes = ["16x16.png", "32x32.png", "48x48.png", "64x64.png", "128x128.png", "256x256.png", "512x512.png"];
+  const appIcon = nativeImage.createEmpty();
+  for (const size of iconSizes) {
+    const iconFile = path.join(iconDir, size);
+    if (fs.existsSync(iconFile)) {
+      const sizeImage = nativeImage.createFromPath(iconFile);
+      if (!sizeImage.isEmpty()) {
+        appIcon.addRepresentation({
+          width: sizeImage.getSize().width,
+          height: sizeImage.getSize().height,
+          buffer: sizeImage.toPNG(),
+        });
+      }
+    }
+  }
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: !startMinimized,
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -547,6 +574,9 @@ async function createWindow() {
       sandbox: true,
     },
   });
+
+  // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
+  mainWindow.setIcon(appIcon);
 
   const isDev = process.env.NODE_ENV === "development";
 
@@ -570,6 +600,14 @@ async function createWindow() {
 }
 
 // ─── App Lifecycle ───────────────────────────────────────────────────────────
+
+// Set the app name and desktop filename so the WM_CLASS matches
+// the .desktop file, ensuring the icon shows in the taskbar/dock on Linux.
+app.name = "screen-time-tracker";
+if (process.platform === "linux") {
+  app.commandLine.appendSwitch("class", "screen-time-tracker");
+}
+app.setDesktopName("screen-time-tracker.desktop");
 
 const gotTheLock = app.requestSingleInstanceLock();
 
