@@ -1,6 +1,5 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Today } from "./pages/Today";
 import { Weekly } from "./pages/Weekly";
