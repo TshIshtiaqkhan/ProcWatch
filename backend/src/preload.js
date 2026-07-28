@@ -24,8 +24,8 @@ const electronAPI = {
 
   // Categories
   listCategories: () => ipcRenderer.invoke("categories:list"),
-  updateCategory: (appName, category) =>
-    ipcRenderer.invoke("categories:update", { appName, category }),
+  updateCategory: (appName, category, isDistracting) =>
+    ipcRenderer.invoke("categories:update", { appName, category, isDistracting }),
   removeCategory: (appName) =>
     ipcRenderer.invoke("categories:remove", { appName }),
 

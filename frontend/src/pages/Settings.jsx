@@ -26,11 +26,12 @@ import {
   Layers,
   FileJson,
   FileSpreadsheet,
+  AlertTriangle,
 } from "lucide-react";
 
 export function Settings() {
   const { settings, update } = useSettings();
-  const { categories, update: updateCategory, add, remove } = useCategories();
+  const { categories, update: updateCategory, add, remove, setDistracting } = useCategories();
   const [editingApp, setEditingApp] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [newAppName, setNewAppName] = useState("");
@@ -290,6 +291,17 @@ export function Settings() {
                     <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 text-xs font-medium">
                       {cat.category}
                     </span>
+                    <button
+                      onClick={() => setDistracting(cat.app_name, !cat.is_distracting)}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        cat.is_distracting
+                          ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                          : "text-slate-500 hover:text-amber-400 hover:bg-amber-500/10"
+                      }`}
+                      title={cat.is_distracting ? "Marked as distracting" : "Mark as distracting"}
+                    >
+                      <AlertTriangle size={14} />
+                    </button>
                     <button
                       onClick={() => {
                         setEditingApp(cat.app_name);

@@ -12,6 +12,9 @@ const DEFAULT_SETTINGS = {
   start_minimized: "true",
   close_to_tray: "true",
   first_run_complete: "false",
+  focus_session_duration_minutes: "25",
+  focus_session_break_minutes: "5",
+  focus_session_block_mode: "overlay",
 };
 
 const DEFAULT_CATEGORIES = {
@@ -168,6 +171,37 @@ async function initDatabase() {
       // Update schema version
       dbConnection.prepare(
         "INSERT OR REPLACE INTO schema_version (version) VALUES (1)"
+      ).run();
+    })();
+  }
+
+  if (version < 2) {
+    logger.info("Running migration v2: focus session support");
+    dbConnection.transaction(() => {
+      dbConnection.exec(`
+        ALTER TABLE app_categories ADD COLUMN is_distracting INTEGER NOT NULL DEFAULT 0;
+
+        CREATE TABLE IF NOT EXISTS focus_sessions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          start_time TEXT NOT NULL,
+          end_time TEXT,
+          duration_minutes INTEGER NOT NULL,
+          completed INTEGER NOT NULL DEFAULT 0,
+          distractions INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_focus_sessions_start_time ON focus_sessions(start_time);
+      `);
+
+      const insertSetting = dbConnection.prepare(
+        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
+      );
+      insertSetting.run("focus_session_duration_minutes", "25");
+      insertSetting.run("focus_session_break_minutes", "5");
+      insertSetting.run("focus_session_block_mode", "overlay");
+
+      dbConnection.prepare(
+        "INSERT OR REPLACE INTO schema_version (version) VALUES (2)"
       ).run();
     })();
   }

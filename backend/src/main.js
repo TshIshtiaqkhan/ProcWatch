@@ -283,7 +283,7 @@ function registerIpcHandlers() {
   ipcMain.handle("categories:list", async () => {
     try {
       const result = await pool.query(
-        "SELECT app_name, category FROM app_categories ORDER BY app_name"
+        "SELECT app_name, category, is_distracting FROM app_categories ORDER BY app_name"
       );
       return ok(result.rows);
     } catch (err) {
@@ -299,9 +299,10 @@ function registerIpcHandlers() {
             typeof payload.category !== "string" || !payload.category.trim()) {
           return fail("INVALID_INPUT", "appName and category are required non-empty strings");
         }
+        const isDistracting = payload.isDistracting === true ? 1 : 0;
         await pool.query(
-          "INSERT INTO app_categories (app_name, category) VALUES ($1, $2) ON CONFLICT (app_name) DO UPDATE SET category = $2",
-          [payload.appName, payload.category]
+          "INSERT INTO app_categories (app_name, category, is_distracting) VALUES ($1, $2, $3) ON CONFLICT (app_name) DO UPDATE SET category = $2, is_distracting = $3",
+          [payload.appName, payload.category, isDistracting]
         );
         return ok();
       } catch (err) {
