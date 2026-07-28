@@ -583,6 +583,7 @@ async function createWindow() {
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
   } else {
+    mainWindow.webContents.session.clearCache().catch(() => {});
     const frontendPath = path.join(__dirname, "..", "..", "frontend", "dist", "index.html");
     mainWindow.loadFile(frontendPath);
   }
