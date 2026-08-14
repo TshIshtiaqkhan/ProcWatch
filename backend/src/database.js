@@ -178,9 +178,16 @@ async function initDatabase() {
   if (version < 2) {
     logger.info("Running migration v2: focus session support");
     dbConnection.transaction(() => {
-      dbConnection.exec(`
-        ALTER TABLE app_categories ADD COLUMN is_distracting INTEGER NOT NULL DEFAULT 0;
+      // Safely check if is_distracting column already exists
+      const columns = dbConnection.pragma("table_info(app_categories)");
+      const hasIsDistracting = columns.some((col) => col.name === "is_distracting");
+      if (!hasIsDistracting) {
+        dbConnection.exec(
+          "ALTER TABLE app_categories ADD COLUMN is_distracting INTEGER NOT NULL DEFAULT 0;"
+        );
+      }
 
+      dbConnection.exec(`
         CREATE TABLE IF NOT EXISTS focus_sessions (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           start_time TEXT NOT NULL,
@@ -205,6 +212,7 @@ async function initDatabase() {
       ).run();
     })();
   }
+
 
   return pool;
 }

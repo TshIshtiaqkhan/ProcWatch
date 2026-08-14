@@ -57,6 +57,11 @@ function registerIpcHandlers() {
     try {
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      const yesterdayObj = new Date(now);
+      yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+      const yesterday = `${yesterdayObj.getFullYear()}-${String(yesterdayObj.getMonth() + 1).padStart(2, "0")}-${String(yesterdayObj.getDate()).padStart(2, "0")}`;
+
       const result = await pool.query(
         `SELECT app_name, SUM(duration_seconds) as seconds
          FROM sessions
@@ -71,7 +76,27 @@ function registerIpcHandlers() {
          WHERE date(start_time, 'localtime') = $1 AND is_idle = 1`,
         [today]
       );
-      return ok({ apps: result.rows, idleSeconds: idleResult.rows[0]?.seconds ?? 0 });
+
+      const yesterdayActiveResult = await pool.query(
+        `SELECT COALESCE(SUM(duration_seconds), 0) as seconds
+         FROM sessions
+         WHERE date(start_time, 'localtime') = $1 AND is_idle = 0`,
+        [yesterday]
+      );
+
+      const yesterdayIdleResult = await pool.query(
+        `SELECT COALESCE(SUM(duration_seconds), 0) as seconds
+         FROM sessions
+         WHERE date(start_time, 'localtime') = $1 AND is_idle = 1`,
+        [yesterday]
+      );
+
+      return ok({
+        apps: result.rows,
+        idleSeconds: idleResult.rows[0]?.seconds ?? 0,
+        yesterdayActiveSeconds: yesterdayActiveResult.rows[0]?.seconds ?? 0,
+        yesterdayIdleSeconds: yesterdayIdleResult.rows[0]?.seconds ?? 0,
+      });
     } catch (err) {
       return fail("QUERY_ERROR", String(err));
     }
@@ -113,22 +138,24 @@ function registerIpcHandlers() {
           return fail("INVALID_INPUT", "startDate and endDate must be YYYY-MM-DD");
         }
 
+        const appPattern = `%${payload.appName}%`;
+
         const dailyResult = await pool.query(
           `SELECT date(start_time, 'localtime') as date, SUM(duration_seconds) as seconds
            FROM sessions
-           WHERE app_name = $1 AND date(start_time, 'localtime') BETWEEN $2 AND $3 AND is_idle = 0
+           WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4) AND date(start_time, 'localtime') BETWEEN $2 AND $3 AND is_idle = 0
            GROUP BY date(start_time, 'localtime')
            ORDER BY date(start_time, 'localtime')`,
-          [payload.appName, payload.startDate, payload.endDate]
+          [payload.appName, payload.startDate, payload.endDate, appPattern]
         );
 
         const titlesResult = await pool.query(
-          `SELECT window_title, SUM(duration_seconds) as seconds
+          `SELECT COALESCE(NULLIF(window_title, ''), app_name) as window_title, SUM(duration_seconds) as seconds
            FROM sessions
-           WHERE app_name = $1 AND date(start_time, 'localtime') BETWEEN $2 AND $3 AND is_idle = 0
-           GROUP BY window_title
+           WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4) AND date(start_time, 'localtime') BETWEEN $2 AND $3 AND is_idle = 0
+           GROUP BY COALESCE(NULLIF(window_title, ''), app_name)
            ORDER BY seconds DESC`,
-          [payload.appName, payload.startDate, payload.endDate]
+          [payload.appName, payload.startDate, payload.endDate, appPattern]
         );
 
         return ok({ daily: dailyResult.rows, titles: titlesResult.rows });
@@ -362,14 +389,16 @@ function registerIpcHandlers() {
       const desktopPath = path.join(autoStartDir, "screen-time-tracker.desktop");
 
       if (payload.enabled) {
+        // Use realpath to resolve any symlinks/case issues
         const execPath = app.isPackaged
-          ? app.getPath("exe")
-          : `${process.execPath} ${path.join(__dirname, "..")}`;
+          ? fs.realpathSync(app.getPath("exe"))
+          : `${fs.realpathSync(process.execPath)} ${path.resolve(__dirname, "..")}`;
+        const iconPath = fs.existsSync(appIconPath) ? fs.realpathSync(appIconPath) : appIconPath;
         const desktopEntry = `[Desktop Entry]
 Type=Application
 Name=Screen Time Tracker
-Exec=${execPath}
-Icon=${appIconPath}
+Exec=${execPath} --no-sandbox
+Icon=${iconPath}
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
@@ -407,21 +436,34 @@ Comment=Track screen time usage
 
 let tray = null;
 
-const activeIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <circle cx="8" cy="8" r="7" fill="#4F46E5" stroke="#6366F1" stroke-width="1"/>
-  <line x1="8" y1="8" x2="8" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="8" y1="8" x2="11" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-</svg>`;
+// Resolve tray icon from the existing PNG assets (nativeImage does NOT support SVG)
+const trayIconDir = app.isPackaged
+  ? path.join(process.resourcesPath, "assets", "icon")
+  : path.join(__dirname, "..", "..", "assets", "icon");
 
-const pausedIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <circle cx="8" cy="8" r="7" fill="#92400E" stroke="#B45309" stroke-width="1"/>
-  <line x1="6" y1="5" x2="6" y2="11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="10" y1="5" x2="10" y2="11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-</svg>`;
+function getTrayIcon() {
+  // Use 16x16 for tray, fall back to larger sizes
+  for (const size of ["16x16.png", "32x32.png", "48x48.png", "icon.png"]) {
+    const iconFile = path.join(trayIconDir, size);
+    if (fs.existsSync(iconFile)) {
+      const img = nativeImage.createFromPath(iconFile);
+      if (!img.isEmpty()) {
+        // Resize to 16x16 for consistent tray display
+        return img.resize({ width: 16, height: 16 });
+      }
+    }
+  }
+  // Ultimate fallback: create a tiny 16x16 blue square PNG
+  return nativeImage.createEmpty();
+}
 
 function createTray() {
-  const icon = nativeImage.createFromBuffer(Buffer.from(activeIconSvg));
+  const icon = getTrayIcon();
+  if (icon.isEmpty()) {
+    logger.error("Failed to load any tray icon — tray may be invisible");
+  }
   tray = new Tray(icon);
+  tray.setToolTip("Screen Time Tracker");
   updateTrayMenu();
 
   tray.on("click", () => {
@@ -465,11 +507,6 @@ function updateTrayMenu() {
   if (!tray) return;
 
   const isPaused = getIsPaused();
-
-  const icon = nativeImage.createFromBuffer(
-    Buffer.from(isPaused ? pausedIconSvg : activeIconSvg)
-  );
-  tray.setImage(icon);
 
   getTodaySummary().then((summaryItems) => {
     if (!tray) return;
@@ -563,10 +600,13 @@ async function createWindow() {
     }
   }
 
+  Menu.setApplicationMenu(null);
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     show: !startMinimized,
+    autoHideMenuBar: true,
     icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -576,8 +616,16 @@ async function createWindow() {
     },
   });
 
+  mainWindow.webContents.on("console-message", (event, level, message, line, sourceId) => {
+    console.log(`[RENDERER CONSOLE] [level ${level}] ${message} (${sourceId}:${line})`);
+  });
+  mainWindow.webContents.on("render-process-gone", (event, details) => {
+    console.error("[RENDERER PROCESS GONE]", details);
+  });
+
   // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
   mainWindow.setIcon(appIcon);
+
 
   const isDev = process.env.NODE_ENV === "development";
 
