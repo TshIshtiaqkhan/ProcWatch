@@ -1,0 +1,59 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: 'npm'
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools icnsutils graphicsmagick xdotool wmctrl x11-utils
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Rebuild native dependencies for Electron
+        run: cd backend && npx -y @electron/rebuild
+
+      - name: Build frontend production bundle
+        run: cd frontend && npm run build
+
+      - name: Package Electron App (AppImage & deb)
+        run: npx electron-builder --linux AppImage deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            release/*.AppImage
+            release/*.deb
+          draft: false
+          prerelease: false
+          generate_release_notes: true

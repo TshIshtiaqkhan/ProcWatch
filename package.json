@@ -49,7 +49,17 @@
         }
       ],
       "category": "Utility",
-      "icon": "frontend/assets/icon"
+      "icon": "frontend/assets/icon",
+      "packageCategory": "utils",
+      "synopsis": "Offline Linux application time and productivity tracker",
+      "deb": {
+        "packageName": "procwatch",
+        "depends": [
+          "xdotool",
+          "wmctrl",
+          "x11-utils"
+        ]
+      }
     },
     "asar": true
   },

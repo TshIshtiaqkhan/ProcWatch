@@ -8,104 +8,86 @@ A fully offline desktop app for Linux (X11) that tracks how much time you spend 
 
 ---
 
-## Quick Start
+## 📥 Installation (For End Users)
 
-### Features
+You do **not** need Node.js or development tools to use ProcWatch. Choose one of the options below:
 
-- Track active window time in real-time
-- View daily, weekly, and monthly usage summaries
-- Interactive charts and statistics per application
-- Works completely offline — no data leaves your machine
-- Lightweight SQLite database for local storage
+### Option 1: One-Line Terminal Install (Recommended)
+Run this single command in your terminal. It detects your Linux distribution, downloads the package, and automatically configures all dependencies:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.sh | bash
+```
 
-### Tech Stack
+---
 
-- **Desktop shell:** Electron (main process in `backend/`)
-- **Frontend:** React + Vite + Tailwind CSS + Recharts
-- **Local database:** better-sqlite3
-- **Window detection:** active-win
+### Option 2: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
+1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
+2. Install via `apt` (which automatically installs required X11 window inspection tools):
+   ```bash
+   sudo apt install ./procwatch_amd64.deb
+   ```
+3. Launch **ProcWatch** from your application launcher or terminal (`procwatch`).
+
+---
+
+### Option 3: Universal Linux (`.AppImage`)
+1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
+2. Make it executable and run:
+   ```bash
+   chmod +x ProcWatch-*.AppImage
+   ./ProcWatch-*.AppImage
+   ```
+
+---
+
+## 🛠️ Development & Building from Source (For Contributors)
+
+If you are modifying the source code or contributing to ProcWatch, follow these instructions:
 
 ### Prerequisites
 
-Ensure your system meets the following requirements before installing:
-
 - **OS:** Linux (x64) with an active **X11** desktop session (`$XDG_SESSION_TYPE=x11`).
-- **Node.js:** `>= 22.12.0` (with `npm`)
-  > **Why Node.js 22.12+?** Electron 33, `@electron/rebuild`, and `node-abi` native compilation dependencies require Node.js 22.12 or higher. Standard LTS package managers (like Debian 12 or Ubuntu 22.04/24.04 repos) ship older versions (Node 18/20) that trigger `EBADENGINE` warnings and broken native module builds.
-  >
-  > To install Node.js 22+, use **[nvm](https://github.com/nvm-sh/nvm)** (recommended) or **[NodeSource](https://github.com/nodesource/distributions)**:
+- **Node.js:** `>= 22.12.0` and `npm`
+  > **Note:** Electron 33 and native modules (`better-sqlite3`, `@electron/rebuild`) require Node.js 22.12+. If your distro default is older (e.g. Node 18/20), use [nvm](https://github.com/nvm-sh/nvm):
   > ```bash
-  > # Using nvm
-  > nvm install 22
-  > nvm use 22
+  > nvm install 22 && nvm use 22
   > ```
-- **OS-Level System Utilities:** Active window tracking relies on `xdotool`, `wmctrl`, and `xprop`. Install them using your distribution's package manager:
-  - **Debian / Ubuntu / Linux Mint / Pop!_OS:**
-    ```bash
-    sudo apt update && sudo apt install -y xdotool wmctrl x11-utils
-    ```
-  - **Fedora / RHEL:**
-    ```bash
-    sudo dnf install -y xdotool wmctrl xorg-x11-utils
-    ```
-  - **Arch Linux / Manjaro:**
-    ```bash
-    sudo pacman -S --needed xdotool wmctrl xorg-xprop
-    ```
-  - **openSUSE:**
-    ```bash
-    sudo zypper install xdotool wmctrl xprop
-    ```
+- **OS-Level System Utilities:** Active window tracking relies on `xdotool`, `wmctrl`, and `xprop`:
+  - **Debian / Ubuntu:** `sudo apt update && sudo apt install -y xdotool wmctrl x11-utils`
+  - **Fedora / RHEL:** `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
+  - **Arch Linux:** `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
+  - **openSUSE:** `sudo zypper install xdotool wmctrl xprop`
 
 ### Install Dependencies
 
-Install the project dependencies for the root workspace, backend, and frontend:
-
-**Option A: Step-by-step**
 ```bash
-# 1. Install root workspace dependencies
+# Step-by-step
 npm install
-
-# 2. Install backend dependencies (Electron main process & tracker)
 cd backend && npm install
-
-# 3. Install frontend dependencies (React dashboard UI)
 cd ../frontend && npm install
-
-# 4. Return to project root
 cd ..
-```
 
-**Option B: Single chained command**
-```bash
+# Or single command:
 npm install && cd backend && npm install && cd ../frontend && npm install && cd ..
 ```
 
-> **Native Module Rebuild (Optional / Troubleshooting):**
-> If you switch Node/Electron versions or encounter `better-sqlite3` native binding errors, run:
-> ```bash
-> npm run rebuild
-> ```
-
-### Development
+### Development Mode
 
 ```bash
 npm run dev
 ```
 
-This starts the Electron app with the frontend dev server.
-
-### Build the frontend
+### Build & Package
 
 ```bash
+# Build React frontend
 npm run build
-```
 
-### Package the app
+# Package local binary
+npm run pack
 
-```bash
-npm run pack    # Build into release/ without full installer
-npm run dist    # Build AppImage and deb packages
+# Build production .deb and .AppImage packages (in release/)
+npm run dist
 ```
 
 ### Project Structure
