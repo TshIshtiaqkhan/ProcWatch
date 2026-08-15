@@ -71,15 +71,21 @@
     },
     "snap": {
       "summary": "Offline Linux application time and productivity tracker",
-      "confinement": "strict",
+      "confinement": "classic",
       "grade": "stable",
       "plugs": [
-        "default",
-        "x11",
         "desktop",
         "desktop-legacy",
+        "home",
+        "x11",
+        "wayland",
         "unity7",
-        "wayland"
+        "browser-support",
+        "network",
+        "gsettings",
+        "audio-playback",
+        "pulseaudio",
+        "opengl"
       ]
     },
     "asar": true

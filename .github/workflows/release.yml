@@ -12,8 +12,6 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    env:
-      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
-          cache: 'npm'
 
       - name: Install Linux build dependencies
         run: |
@@ -43,17 +40,17 @@ jobs:
 
       - name: Build frontend production bundle
         run: cd frontend && npm run build
-        
+
       - name: Install Snapcraft
         run: sudo snap install snapcraft --classic
 
       - name: Package AppImage and deb
-        run: npx electron-builder --linux AppImage deb
+        run: npx electron-builder --linux AppImage deb --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package Snap
-        run: npx electron-builder --linux snap
+        run: npx electron-builder --linux snap --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -69,9 +66,16 @@ jobs:
           prerelease: false
           generate_release_notes: true
 
+      - name: Find snap file
+        id: find_snap
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "snap_path=$(find release -name '*.snap' | head -1)" >> $GITHUB_OUTPUT
+
       - name: Publish to Snap Store
-        uses: snapcore/action-publish@v1
-        if: startsWith(github.ref, 'refs/tags/') && env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        uses: canonical/action-publish@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
         with:
-          snap: release/*.snap
-          channel: stable
+          snap: ${{ steps.find_snap.outputs.snap_path }}
+          release: stable

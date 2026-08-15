@@ -166,7 +166,7 @@ Users want visibility into their computer usage habits (which apps/websites cons
 │                                                 │
 │  ┌───────────────┐        ┌─────────────────┐ │
 │  │  Main Process │  IPC   │ Renderer Process│ │
-│  │  (Node.js)    │◄──────►│  (React + TS)   │ │
+│  │  (Node.js)    │◄──────►│  (React + JS)   │ │
 │  │               │        │                 │ │
 │  │ - Tracker     │        │ - Dashboard UI  │ │
 │  │ - DB Layer    │        │ - Charts        │ │
@@ -195,7 +195,7 @@ Users want visibility into their computer usage habits (which apps/websites cons
 - Exposes IPC handlers for the renderer to query data (read-only from renderer side)
 - Handles app auto-start on login (optional setting)
 
-**Renderer process (React + TypeScript):**
+**Renderer process (React + JavaScript):**
 - Pure UI layer — no direct file system or DB access (security best practice, contextIsolation enabled)
 - Requests data via `window.electronAPI.getUsage(...)` (exposed through `contextBridge`)
 - Renders charts, tables, settings screen
@@ -204,7 +204,7 @@ Users want visibility into their computer usage habits (which apps/websites cons
 - `contextIsolation: true`
 - `nodeIntegration: false` in renderer
 - `sandbox: true` where possible
-- Preload script exposes a strict, typed API surface (`preload.ts`) — no raw IPC channel names exposed to renderer directly
+- Preload script exposes a strict API surface (`preload.js`) — no raw IPC channel names exposed to renderer directly
 - No remote content ever loaded (`webSecurity` stays enabled, no `<webview>` tags pointing externally)
 
 ---
@@ -213,15 +213,15 @@ Users want visibility into their computer usage habits (which apps/websites cons
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Shell | Electron (latest stable) | Pure JS/TS, no Rust |
-| Language | TypeScript | Strict mode enabled across main + renderer |
+| Shell | Electron (latest stable) | Pure JS, no native rewrite |
+| Language | JavaScript (ES Modules) | Used across both main and renderer processes |
 | UI Framework | React 18+ | Functional components + hooks only |
-| Bundler | Vite (electron-vite) | Fast dev reload for both processes |
+| Bundler | Vite | Fast dev reload for the renderer |
 | Local DB | SQLite via `better-sqlite3` | Synchronous, fast, no async overhead for local writes |
 | Active window detection | `active-win` (npm) | Wraps `wmctrl`/`xdotool`/`xprop` on Linux |
 | Idle detection | Electron `powerMonitor.getSystemIdleTime()` | Built-in, cross-desktop-environment safe |
 | Charts | `recharts` | Matches existing React familiarity |
-| Styling | Tailwind CSS | Fast iteration, utility classes |
+| Styling | Tailwind CSS | Utility-first CSS via PostCSS |
 | Tray icon | Electron `Tray` API | Built-in |
 | Packaging | `electron-builder` | Produces `.AppImage`, `.deb` |
 | State management (renderer) | React Context + hooks | No Redux needed for this scope |
@@ -496,7 +496,7 @@ on each poll tick:
 ## 10. Milestones / Roadmap
 
 **Milestone 1 — Core Tracking (Week 1–2)**
-- Electron + TS scaffold, `better-sqlite3` setup, schema migration
+- Electron + JS scaffold, `better-sqlite3` setup, schema migration
 - Polling loop + `active-win` integration + idle detection
 - Session merge logic, manual DB inspection to verify correctness
 
