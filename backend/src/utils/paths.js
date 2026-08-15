@@ -46,6 +46,35 @@ function getAppConfigDir() {
   }
 })();
 
+// Automatically clean up old desktop entries from previous app name
+(function cleanLegacyDesktopEntries() {
+  try {
+    const home = (app && typeof app.getPath === "function")
+      ? app.getPath("home")
+      : process.env.HOME || os.homedir();
+
+    const oldAutostart = path.join(
+      process.env.XDG_CONFIG_HOME || path.join(home, ".config"),
+      "autostart",
+      "screen-time-tracker.desktop"
+    );
+    if (fs.existsSync(oldAutostart)) {
+      fs.unlinkSync(oldAutostart);
+    }
+
+    const oldAppEntry = path.join(
+      process.env.XDG_DATA_HOME || path.join(home, ".local", "share"),
+      "applications",
+      "screen-time-tracker.desktop"
+    );
+    if (fs.existsSync(oldAppEntry)) {
+      fs.unlinkSync(oldAppEntry);
+    }
+  } catch (err) {
+    console.warn("[paths] Legacy desktop cleanup skipped:", err.message);
+  }
+})();
+
 /**
  * Resolves asset paths correctly for both dev and packaged mode.
  */

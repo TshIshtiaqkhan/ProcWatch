@@ -344,6 +344,10 @@ async function setAutoStart(_e, payload, ctx) {
     );
     fs.mkdirSync(autoStartDir, { recursive: true });
     const desktopPath = path.join(autoStartDir, "procwatch.desktop");
+    const oldDesktopPath = path.join(autoStartDir, "screen-time-tracker.desktop");
+    if (fs.existsSync(oldDesktopPath)) {
+      try { fs.unlinkSync(oldDesktopPath); } catch {}
+    }
 
     if (payload.enabled) {
       // Use realpath to resolve any symlinks/case issues
