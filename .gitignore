@@ -48,4 +48,5 @@ temp/
 # Workflow & design artifacts
 .commandcode/
 components.md
-stitch_*/
+component.md
+stitch*/

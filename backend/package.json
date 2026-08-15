@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "ProcWatch - Electron main process",
   "main": "src/main.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "electron ."
