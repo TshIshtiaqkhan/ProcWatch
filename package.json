@@ -1,7 +1,7 @@
 {
   "name": "procwatch",
   "version": "1.0.0",
-  "description": "A fully offline desktop app for Linux that tracks screen time per application",
+  "description": "A fully offline desktop app for Linux that tracks application usage and productivity",
   "main": "backend/src/main.js",
   "scripts": {
     "build:frontend": "cd frontend && npm run build",

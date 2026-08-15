@@ -359,7 +359,7 @@ Icon=${iconPath}
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Comment=Track screen time usage
+Comment=ProcWatch Application Usage & Productivity Tracker
 `;
       fs.writeFileSync(desktopPath, desktopEntry);
     } else {
