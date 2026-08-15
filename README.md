@@ -27,17 +27,65 @@ A fully offline desktop app for Linux (X11) that tracks how much time you spend 
 
 ### Prerequisites
 
-- Node.js 18+
-- Linux (x64)
-- npm
+Ensure your system meets the following requirements before installing:
 
-### Install dependencies
+- **OS:** Linux (x64) with an active **X11** desktop session (`$XDG_SESSION_TYPE=x11`).
+- **Node.js:** `>= 22.12.0` (with `npm`)
+  > **Why Node.js 22.12+?** Electron 33, `@electron/rebuild`, and `node-abi` native compilation dependencies require Node.js 22.12 or higher. Standard LTS package managers (like Debian 12 or Ubuntu 22.04/24.04 repos) ship older versions (Node 18/20) that trigger `EBADENGINE` warnings and broken native module builds.
+  >
+  > To install Node.js 22+, use **[nvm](https://github.com/nvm-sh/nvm)** (recommended) or **[NodeSource](https://github.com/nodesource/distributions)**:
+  > ```bash
+  > # Using nvm
+  > nvm install 22
+  > nvm use 22
+  > ```
+- **OS-Level System Utilities:** Active window tracking relies on `xdotool`, `wmctrl`, and `xprop`. Install them using your distribution's package manager:
+  - **Debian / Ubuntu / Linux Mint / Pop!_OS:**
+    ```bash
+    sudo apt update && sudo apt install -y xdotool wmctrl x11-utils
+    ```
+  - **Fedora / RHEL:**
+    ```bash
+    sudo dnf install -y xdotool wmctrl xorg-x11-utils
+    ```
+  - **Arch Linux / Manjaro:**
+    ```bash
+    sudo pacman -S --needed xdotool wmctrl xorg-xprop
+    ```
+  - **openSUSE:**
+    ```bash
+    sudo zypper install xdotool wmctrl xprop
+    ```
 
+### Install Dependencies
+
+Install the project dependencies for the root workspace, backend, and frontend:
+
+**Option A: Step-by-step**
 ```bash
+# 1. Install root workspace dependencies
 npm install
+
+# 2. Install backend dependencies (Electron main process & tracker)
 cd backend && npm install
+
+# 3. Install frontend dependencies (React dashboard UI)
 cd ../frontend && npm install
+
+# 4. Return to project root
+cd ..
 ```
+
+**Option B: Single chained command**
+```bash
+npm install && cd backend && npm install && cd ../frontend && npm install && cd ..
+```
+
+> **Native Module Rebuild (Optional / Troubleshooting):**
+> If you switch Node/Electron versions or encounter `better-sqlite3` native binding errors, run:
+> ```bash
+> npm run rebuild
+> ```
 
 ### Development
 
@@ -189,12 +237,19 @@ Users want visibility into their computer usage habits (which apps/websites cons
 | Testing | Vitest (unit), Playwright (E2E, optional v1.1) | |
 
 ### 4.1 System Dependencies (Linux, must be present on user's machine)
-- `xdotool` — for active window title/PID detection
-- `wmctrl` — fallback/alternate window listing
-- `xprop` — window property inspection
+- `xdotool` — for active window title and PID detection
+- `wmctrl` — fallback and alternate window listing
+- `xprop` (part of `x11-utils` / `xorg-xprop`) — window property inspection
 - X11 session (`$XDG_SESSION_TYPE` must be `x11`)
+- Node.js `>= 22.12.0` (required for `@electron/rebuild`, `node-abi`, and Electron 33 native bindings)
 
-**Note:** these are typically pre-installed on most Linux desktop distros, but the app should check for their presence on first launch and show a clear error/instructions if missing (see section 7.6).
+**Package Installation Commands:**
+- **Debian / Ubuntu / Linux Mint:** `sudo apt update && sudo apt install -y xdotool wmctrl x11-utils`
+- **Fedora / RHEL:** `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
+- **Arch Linux / Manjaro:** `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
+- **openSUSE:** `sudo zypper install xdotool wmctrl xprop`
+
+**Note:** The app checks for the presence of these tools on first launch and displays instructions if any required utility is missing (see Section 7.6).
 
 ---
 
