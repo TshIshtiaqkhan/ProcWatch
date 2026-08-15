@@ -43,9 +43,12 @@ jobs:
 
       - name: Build frontend production bundle
         run: cd frontend && npm run build
+        
+      - name: Install Snapcraft
+        run: sudo snap install snapcraft --classic
 
-      - name: Package Electron App (AppImage, deb, snap)
-        run: npx electron-builder --linux AppImage deb snap
+      - name: Package Electron App
+        run: npx electron-builder --linux
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
