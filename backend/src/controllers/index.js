@@ -383,9 +383,17 @@ async function isFirstRun(_e, _payload, _ctx) {
 }
 
 async function completeOnboarding(_e, _payload, ctx) {
-  await setSetting("first_run_complete", "true");
-  ctx.getCachedSettings().first_run_complete = "true";
-  return ok();
+  try {
+    await setSetting("first_run_complete", "true");
+    if (ctx && typeof ctx.getCachedSettings === "function") {
+      const cached = ctx.getCachedSettings();
+      if (cached) cached.first_run_complete = "true";
+    }
+    return ok();
+  } catch (err) {
+    logger.error("Failed to complete onboarding:", err);
+    return fail("ONBOARDING_ERROR", String(err));
+  }
 }
 
 module.exports = {

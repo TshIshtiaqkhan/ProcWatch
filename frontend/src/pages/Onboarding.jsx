@@ -39,25 +39,38 @@ const STEPS = [
   },
 ];
 
-export function Onboarding() {
+export function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0);
   const [deps, setDeps] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!window.electronAPI) return;
+    if (!window.electronAPI?.checkDeps) return;
     window.electronAPI.checkDeps().then((result) => {
-      if (result.success && result.data) {
+      if (result?.success && result?.data) {
         setDeps(result.data);
       }
     });
   }, []);
 
   const handleFinish = async () => {
-    if (!window.electronAPI) return;
-    await window.electronAPI.completeOnboarding();
-    navigate("/today");
+    if (finishing) return;
+    setFinishing(true);
+    try {
+      if (window.electronAPI?.completeOnboarding) {
+        await window.electronAPI.completeOnboarding();
+      }
+    } catch (err) {
+      console.error("Failed to complete onboarding:", err);
+    } finally {
+      if (typeof onComplete === "function") {
+        onComplete();
+      }
+      navigate("/today", { replace: true });
+      setFinishing(false);
+    }
   };
 
   const copyCommand = (cmd) => {
