@@ -47,3 +47,7 @@ temp/
 
 # Editor-specific
 .commandcode/
+
+# Workflow & design artifacts
+components.md
+stitch_*/
