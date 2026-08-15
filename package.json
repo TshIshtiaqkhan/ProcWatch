@@ -46,6 +46,10 @@
         {
           "target": "deb",
           "arch": ["x64"]
+        },
+        {
+          "target": "snap",
+          "arch": ["x64"]
         }
       ],
       "category": "Utility",
@@ -58,6 +62,19 @@
           "xdotool",
           "wmctrl",
           "x11-utils"
+        ]
+      },
+      "snap": {
+        "summary": "Offline Linux application time and productivity tracker",
+        "confinement": "strict",
+        "grade": "stable",
+        "plugs": [
+          "default",
+          "x11",
+          "desktop",
+          "desktop-legacy",
+          "unity7",
+          "wayland"
         ]
       }
     },

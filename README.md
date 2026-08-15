@@ -12,15 +12,24 @@ A fully offline desktop app for Linux (X11) that tracks how much time you spend 
 
 You do **not** need Node.js or development tools to use ProcWatch. Choose one of the options below:
 
-### Option 1: One-Line Terminal Install (Recommended)
-Run this single command in your terminal. It detects your Linux distribution, downloads the package, and automatically configures all dependencies:
+### Option 1: Snap Store (Ubuntu, Debian, Fedora, Arch)
+Install with a single command from the Snap Store:
+```bash
+sudo snap install procwatch
+```
+*(Or search **ProcWatch** in the Ubuntu App Center / Software Store and click Install)*
+
+---
+
+### Option 2: One-Line Terminal Script
+Run this single command in your terminal. It automatically detects your Linux distribution, downloads the binary, and configures dependencies:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.sh | bash
 ```
 
 ---
 
-### Option 2: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
+### Option 3: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
 1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
 2. Install via `apt` (which automatically installs required X11 window inspection tools):
    ```bash
@@ -30,7 +39,7 @@ curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.
 
 ---
 
-### Option 3: Universal Linux (`.AppImage`)
+### Option 4: Universal Linux (`.AppImage`)
 1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
 2. Make it executable and run:
    ```bash
