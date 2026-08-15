@@ -12,6 +12,8 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -61,9 +63,7 @@ jobs:
 
       - name: Publish to Snap Store
         uses: snapcore/action-publish@v1
-        if: startsWith(github.ref, 'refs/tags/') && secrets.SNAPCRAFT_TOKEN != ''
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+        if: startsWith(github.ref, 'refs/tags/') && env.SNAPCRAFT_STORE_CREDENTIALS != ''
         with:
           snap: release/*.snap
           channel: stable
