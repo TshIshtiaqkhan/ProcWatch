@@ -43,3 +43,17 @@ export function daysAgo(n) {
   d.setDate(d.getDate() - n);
   return toLocalDateString(d);
 }
+
+export const RANGE_PRESETS_MONTHLY = [
+  { label: "7 Days", days: 7 },
+  { label: "30 Days", days: 30 },
+  { label: "90 Days", days: 90 },
+  { label: "Custom Range", days: 0 },
+];
+
+export const RANGE_PRESETS_APP_DETAIL = [
+  { label: "7d", days: 7 },
+  { label: "30d", days: 30 },
+  { label: "90d", days: 90 },
+  { label: "Custom", days: 0 },
+];
