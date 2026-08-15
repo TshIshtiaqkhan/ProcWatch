@@ -2,7 +2,10 @@
   "name": "procwatch",
   "version": "1.0.0",
   "description": "A fully offline desktop app for Linux that tracks application usage and productivity",
-  "author":"Ishtiaq Khan",
+  "author": {
+    "name": "Ishtiaq Khan",
+    "email": "ishtiaqkhan@example.com"
+  },
   "main": "backend/src/main.js",
 
   "engines": {

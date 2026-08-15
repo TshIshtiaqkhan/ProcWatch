@@ -47,8 +47,13 @@ jobs:
       - name: Install Snapcraft
         run: sudo snap install snapcraft --classic
 
-      - name: Package Electron App
-        run: npx electron-builder --linux
+      - name: Package AppImage and deb
+        run: npx electron-builder --linux AppImage deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package Snap
+        run: npx electron-builder --linux snap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
