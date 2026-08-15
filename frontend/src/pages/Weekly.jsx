@@ -1,48 +1,9 @@
 import { useMemo } from "react";
 import { useRangeData } from "../hooks/useRangeData";
 import { formatDuration, daysAgo } from "../lib/constants";
-import {
-  SiGooglechrome,
-  SiSpotify,
-  SiZoom,
-  SiFirefox,
-  SiDiscord,
-  SiFigma,
-  SiBrave,
-  SiNotion,
-  SiTelegram,
-} from "react-icons/si";
-import { FaSlack, FaTerminal } from "react-icons/fa";
-import { VscVscode } from "react-icons/vsc";
-
-const AppIcon = ({ name }) => {
-  const n = (name || "").toLowerCase();
-  if (n.includes("chrome")) return <SiGooglechrome color="#4285F4" size={18} />;
-  if (n.includes("slack")) return <FaSlack color="#E01E5A" size={18} />;
-  if (n.includes("code") || n.includes("codium")) return <VscVscode color="#007ACC" size={18} />;
-  if (n.includes("spotify")) return <SiSpotify color="#1DB954" size={18} />;
-  if (n.includes("zoom")) return <SiZoom color="#2D8CFF" size={18} />;
-  if (n.includes("firefox")) return <SiFirefox color="#FF7139" size={18} />;
-  if (n.includes("discord")) return <SiDiscord color="#5865F2" size={18} />;
-  if (n.includes("figma")) return <SiFigma color="#F24E1E" size={18} />;
-  if (n.includes("brave")) return <SiBrave color="#FF1B2D" size={18} />;
-  if (n.includes("notion")) return <SiNotion color="#FFFFFF" size={18} />;
-  if (n.includes("telegram")) return <SiTelegram color="#26A5E4" size={18} />;
-  if (
-    n.includes("terminal") ||
-    n.includes("konsole") ||
-    n.includes("kitty") ||
-    n.includes("alacritty") ||
-    n.includes("bash")
-  ) {
-    return <FaTerminal color="#A1A1AA" size={16} />;
-  }
-  return (
-    <div className="w-[24px] h-[24px] rounded-[7px] flex items-center justify-center text-[11px] font-bold bg-[#27272a] text-[#e4e4e7] border border-white/10 uppercase shrink-0">
-      {(name || "A").slice(0, 1)}
-    </div>
-  );
-};
+import { AppIcon } from "../components/ui/AppIcon";
+import { LoadingState } from "../components/ui/LoadingState";
+import { GlassCard } from "../components/ui/GlassCard";
 
 const SERIES_PALETTE = [
   "#848592", // series 0: other (gray)
@@ -208,14 +169,7 @@ export function Weekly() {
   }, [usage]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-white/10 text-purple-300 font-medium backdrop-blur-md">
-          <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span>Analyzing weekly usage distribution...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Analyzing weekly usage distribution..." />;
   }
 
   const leftApps = sortedApps.slice(0, Math.ceil(sortedApps.length / 2));
@@ -237,44 +191,34 @@ export function Weekly() {
 
       {/* Summary Stat Grid matching weekly.html .stat-grid */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-[16px] mb-[24px]" aria-label="Summary stats">
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Total Active Time</p>
           <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em]">
             {formatDuration(totalSeconds)}
           </div>
           <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">7 Days</p>
-        </div>
+        </GlassCard>
 
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Daily Average</p>
           <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em]">
             {formatDuration(avgDailySeconds)}
           </div>
           <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">Per Active Day</p>
-        </div>
+        </GlassCard>
 
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Top App</p>
           <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em] truncate">
             {topApp.name}
           </div>
           <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">{formatDuration(topApp.seconds)}</p>
-        </div>
+        </GlassCard>
       </section>
 
       {/* Daily Distribution Stacked Bar Chart Card matching weekly.html .chart-wrap */}
-      <section
-        className="p-[22px_24px] rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden mb-[24px]"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[22px_24px] mb-[24px]"
         aria-label="Daily distribution"
       >
         <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 mb-[22px]">
@@ -348,12 +292,11 @@ export function Weekly() {
             ))}
           </div>
         )}
-      </section>
+      </GlassCard>
 
       {/* Weekly Breakdown Card matching weekly.html .breakdown-grid */}
-      <section
-        className="p-[22px_24px] rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[22px_24px]"
         aria-label="Weekly breakdown"
       >
         <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 mb-[22px]">
@@ -397,7 +340,7 @@ export function Weekly() {
             ))}
           </div>
         </div>
-      </section>
+      </GlassCard>
     </div>
   );
 }

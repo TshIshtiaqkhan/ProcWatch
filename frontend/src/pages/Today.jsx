@@ -3,6 +3,8 @@ import { SummaryCard } from "../components/ui/SummaryCard";
 import { AppBarChart } from "../components/charts/AppBarChart";
 import { AppUsageList } from "../components/dashboard/AppUsageList";
 import { formatDuration } from "../lib/constants";
+import { LoadingState } from "../components/ui/LoadingState";
+import { GlassCard } from "../components/ui/GlassCard";
 
 export function Today() {
   const {
@@ -67,14 +69,7 @@ export function Today() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-white/10 text-purple-300 font-medium backdrop-blur-md">
-          <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span>Fetching today's session activity...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Fetching today's session activity..." />;
   }
 
   return (
@@ -118,35 +113,22 @@ export function Today() {
       </div>
 
       {/* Time per Application Horizontal Chart Card */}
-      <div
-        className="p-5 rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden"
-        style={{
-          backgroundColor: "rgba(20, 20, 22, 0.92)",
-          backdropFilter: "blur(14px)",
-        }}
-      >
+      <GlassCard className="p-5">
         <h2 className="text-[13px] font-medium text-[#a1a1aa] tracking-wide mb-5">
           Time per Application
         </h2>
         <AppBarChart data={activeData} />
-      </div>
+      </GlassCard>
 
       {/* Detailed Application Breakdown Card */}
-      <div
-        className="p-5 rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden"
-        style={{
-          backgroundColor: "rgba(20, 20, 22, 0.92)",
-          backdropFilter: "blur(14px)",
-        }}
-      >
+      <GlassCard className="p-5">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-[13px] font-medium text-[#a1a1aa] tracking-wide">
             Application Usage Breakdown
           </h2>
         </div>
         <AppUsageList data={activeData} />
-      </div>
+      </GlassCard>
     </div>
   );
 }
-

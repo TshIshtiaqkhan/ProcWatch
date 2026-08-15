@@ -9,6 +9,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import logo from "../../../assets/icon/256x256.png";
 
 const triggerSideCannons = () => {
   const end = Date.now() + 3 * 1000;
@@ -42,6 +43,15 @@ const triggerSideCannons = () => {
 import { useTrackingStatus } from "../../hooks/useTrackingStatus";
 import { InteractiveGridPattern } from "../ui/InteractiveGridPattern";
 import { useState, useEffect } from "react";
+
+function AlertBanner({ children }) {
+  return (
+    <div className="bg-yellow-900/30 border-b border-yellow-700/50 px-4 py-2 flex items-center gap-2 text-yellow-300 text-sm">
+      <AlertTriangle size={16} />
+      {children}
+    </div>
+  );
+}
 
 const navItems = [
   { to: "/today", label: "Today", icon: Activity },
@@ -80,11 +90,9 @@ export function MainLayout() {
         style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(14px)" }}
       >
         <div className="p-6 flex items-center gap-2.5">
-          <div className="w-[26px] h-[26px] rounded-[7px] bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] flex items-center justify-center text-white shrink-0 shadow-md">
-            <Activity size={15} />
-          </div>
+          <img src={logo} alt="ProcWatch" className="w-[26px] h-[26px] rounded-[7px] shrink-0" />
           <h1 className="text-base font-bold text-white tracking-tight leading-none">
-            ScreenTrack
+            ProcWatch
           </h1>
         </div>
 
@@ -130,20 +138,17 @@ export function MainLayout() {
       {/* Main App Content View Area */}
       <main className="flex-1 overflow-y-auto z-10 relative">
         {!trackerReady && (
-          <div className="bg-yellow-900/30 border-b border-yellow-700/50 px-4 py-2 flex items-center gap-2 text-yellow-300 text-sm">
-            <AlertTriangle size={16} />
+          <AlertBanner>
             Tracking is unavailable — active-win module failed to load. Window detection requires X11 and xdotool.
-          </div>
+          </AlertBanner>
         )}
         {trackerReady && isWayland && (
-          <div className="bg-yellow-900/30 border-b border-yellow-700/50 px-4 py-2 flex items-center gap-2 text-yellow-300 text-sm">
-            <AlertTriangle size={16} />
+          <AlertBanner>
             Wayland session detected. Active window tracking is unavailable due to Wayland security restrictions; only idle tracking is active.
-          </div>
+          </AlertBanner>
         )}
         <Outlet />
       </main>
     </div>
   );
 }
-

@@ -1,48 +1,9 @@
 import { useState } from "react";
 import { useSettings } from "../hooks/useSettings";
 import { useCategories } from "../hooks/useCategories";
-import {
-  SiGooglechrome,
-  SiSpotify,
-  SiZoom,
-  SiFirefox,
-  SiDiscord,
-  SiFigma,
-  SiBrave,
-  SiNotion,
-  SiTelegram,
-} from "react-icons/si";
-import { FaSlack, FaTerminal } from "react-icons/fa";
-import { VscVscode } from "react-icons/vsc";
-
-const AppIcon = ({ name }) => {
-  const n = (name || "").toLowerCase();
-  if (n.includes("chrome")) return <SiGooglechrome color="#4285F4" size={18} />;
-  if (n.includes("slack")) return <FaSlack color="#E01E5A" size={18} />;
-  if (n.includes("code") || n.includes("codium")) return <VscVscode color="#007ACC" size={18} />;
-  if (n.includes("spotify")) return <SiSpotify color="#1DB954" size={18} />;
-  if (n.includes("zoom")) return <SiZoom color="#2D8CFF" size={18} />;
-  if (n.includes("firefox")) return <SiFirefox color="#FF7139" size={18} />;
-  if (n.includes("discord")) return <SiDiscord color="#5865F2" size={18} />;
-  if (n.includes("figma")) return <SiFigma color="#F24E1E" size={18} />;
-  if (n.includes("brave")) return <SiBrave color="#FF1B2D" size={18} />;
-  if (n.includes("notion")) return <SiNotion color="#FFFFFF" size={18} />;
-  if (n.includes("telegram")) return <SiTelegram color="#26A5E4" size={18} />;
-  if (
-    n.includes("terminal") ||
-    n.includes("konsole") ||
-    n.includes("kitty") ||
-    n.includes("alacritty") ||
-    n.includes("bash")
-  ) {
-    return <FaTerminal color="#A1A1AA" size={16} />;
-  }
-  return (
-    <div className="w-[28px] h-[28px] rounded-[7px] flex items-center justify-center text-[12px] font-bold bg-[#27272a] text-[#e4e4e7] border border-white/10 uppercase shrink-0">
-      {(name || "A").slice(0, 1)}
-    </div>
-  );
-};
+import { AppIcon } from "../components/ui/AppIcon";
+import { LoadingState } from "../components/ui/LoadingState";
+import { GlassCard } from "../components/ui/GlassCard";
 
 const SliderCard = ({ label, min, max, value, onChange, readoutTag, formatValue, unit }) => {
   const pct = Math.round(((value - min) / (max - min)) * 100);
@@ -122,14 +83,7 @@ export function Settings() {
   const [exportStatus, setExportStatus] = useState(null);
 
   if (!settings || Object.keys(settings).length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-white/10 text-purple-300 font-medium backdrop-blur-md">
-          <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span>Loading preference engine...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Loading preference engine..." />;
   }
 
   const pollInterval = Number(settings.polling_interval_seconds ?? 5);
@@ -160,10 +114,7 @@ export function Settings() {
   return (
     <div className="p-[28px_34px] max-w-[1400px] mx-auto space-y-6 animate-fadeIn pb-16">
       {/* Hero Panel matching setting.html .hero-panel */}
-      <section
-        className="p-[24px_28px] border border-white/[0.16] rounded-[14px] shadow-2xl relative"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-      >
+      <GlassCard className="p-[24px_28px]">
         <div className="flex flex-wrap justify-between items-start gap-4">
           <span className="inline-flex items-center px-[14px] py-[6px] rounded-full bg-[#17171a] border border-white/[0.16] text-[13px] font-medium text-[#a1a1aa]">
             ProcWatch Preferences
@@ -179,12 +130,11 @@ export function Settings() {
         <p className="mt-[12px] text-[15px] leading-[22px] text-[#a1a1aa] max-w-[720px] m-0">
           Configure background tracking intervals, system autostart options, application tags, and local SQLite data persistence.
         </p>
-      </section>
+      </GlassCard>
 
       {/* Tracking Engine Calibration Section matching setting.html .calibration-grid */}
-      <section
-        className="p-[24px_28px] border border-white/[0.16] rounded-[14px] shadow-2xl relative"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[24px_28px]"
         aria-label="Tracking engine calibration"
       >
         <h2 className="text-[20px] font-bold text-[#f4f4f5] tracking-[-0.01em] m-0">
@@ -215,12 +165,11 @@ export function Settings() {
             onChange={(v) => update({ idle_threshold_seconds: String(v) })}
           />
         </div>
-      </section>
+      </GlassCard>
 
       {/* System Behavior & Retention Section matching setting.html .behavior-grid */}
-      <section
-        className="p-[24px_28px] border border-white/[0.16] rounded-[14px] shadow-2xl relative"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[24px_28px]"
         aria-label="System behavior and retention"
       >
         <h2 className="text-[20px] font-bold text-[#f4f4f5] tracking-[-0.01em] m-0">
@@ -272,12 +221,11 @@ export function Settings() {
             </div>
           </div>
         </div>
-      </section>
+      </GlassCard>
 
       {/* Application Categorization Section matching setting.html .cat-table & .add-rule-box */}
-      <section
-        className="p-[24px_28px] border border-white/[0.16] rounded-[14px] shadow-2xl relative"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[24px_28px]"
         aria-label="Application categorization"
       >
         <div className="flex items-center gap-[12px] mb-[18px]">
@@ -377,7 +325,7 @@ export function Settings() {
             </button>
           </form>
         </div>
-      </section>
+      </GlassCard>
 
       {/* Local Data Export & Backup Section matching setting.html .export-panel */}
       <section

@@ -15,7 +15,7 @@ const STEPS = [
     icon: Clock,
     title: "Track Your Screen Time",
     description:
-      "Screen Time Tracker monitors which apps you use and for how long — automatically, in the background. No manual input needed.",
+      "ProcWatch monitors which apps you use and for how long — automatically, in the background. No manual input needed.",
   },
   {
     icon: HardDrive,

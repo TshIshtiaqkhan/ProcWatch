@@ -1,64 +1,19 @@
 import { useMemo, useState } from "react";
 import { useRangeData } from "../hooks/useRangeData";
-import { formatDuration, daysAgo, todayDateString } from "../lib/constants";
-import {
-  SiGooglechrome,
-  SiSpotify,
-  SiZoom,
-  SiFirefox,
-  SiDiscord,
-  SiFigma,
-  SiBrave,
-  SiNotion,
-  SiTelegram,
-} from "react-icons/si";
-import { FaSlack, FaTerminal } from "react-icons/fa";
-import { VscVscode } from "react-icons/vsc";
-
-const RANGE_PRESETS = [
-  { label: "7 Days", days: 7 },
-  { label: "30 Days", days: 30 },
-  { label: "90 Days", days: 90 },
-  { label: "Custom Range", days: 0 },
-];
+import { formatDuration, daysAgo, todayDateString, RANGE_PRESETS_MONTHLY } from "../lib/constants";
+import { AppIcon } from "../components/ui/AppIcon";
+import { LoadingState } from "../components/ui/LoadingState";
+import { GlassCard } from "../components/ui/GlassCard";
+import { RangeSwitcher } from "../components/ui/RangeSwitcher";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const AppIcon = ({ name }) => {
-  const n = (name || "").toLowerCase();
-  if (n.includes("chrome")) return <SiGooglechrome color="#4285F4" size={18} />;
-  if (n.includes("slack")) return <FaSlack color="#E01E5A" size={18} />;
-  if (n.includes("code") || n.includes("codium")) return <VscVscode color="#007ACC" size={18} />;
-  if (n.includes("spotify")) return <SiSpotify color="#1DB954" size={18} />;
-  if (n.includes("zoom")) return <SiZoom color="#2D8CFF" size={18} />;
-  if (n.includes("firefox")) return <SiFirefox color="#FF7139" size={18} />;
-  if (n.includes("discord")) return <SiDiscord color="#5865F2" size={18} />;
-  if (n.includes("figma")) return <SiFigma color="#F24E1E" size={18} />;
-  if (n.includes("brave")) return <SiBrave color="#FF1B2D" size={18} />;
-  if (n.includes("notion")) return <SiNotion color="#FFFFFF" size={18} />;
-  if (n.includes("telegram")) return <SiTelegram color="#26A5E4" size={18} />;
-  if (
-    n.includes("terminal") ||
-    n.includes("konsole") ||
-    n.includes("kitty") ||
-    n.includes("alacritty") ||
-    n.includes("bash")
-  ) {
-    return <FaTerminal color="#A1A1AA" size={16} />;
-  }
-  return (
-    <div className="w-[20px] h-[20px] rounded-[5px] flex items-center justify-center text-[10px] font-bold bg-[#27272a] text-[#e4e4e7] border border-white/10 uppercase shrink-0">
-      {(name || "A").slice(0, 1)}
-    </div>
-  );
-};
 
 export function Monthly() {
   const [presetIdx, setPresetIdx] = useState(0); // Default to 7 Days
   const [customStart, setCustomStart] = useState(daysAgo(89));
   const [customEnd, setCustomEnd] = useState(todayDateString());
 
-  const presetDays = RANGE_PRESETS[presetIdx]?.days ?? 7;
+  const presetDays = RANGE_PRESETS_MONTHLY[presetIdx]?.days ?? 7;
   const startDate = presetDays > 0 ? daysAgo(presetDays - 1) : customStart;
   const endDate = presetDays > 0 ? daysAgo(0) : customEnd;
 
@@ -217,14 +172,7 @@ export function Monthly() {
   const activeRatePct = Math.round((activeDaysCount / Math.max(dayCount, 1)) * 100);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-white/10 text-purple-300 font-medium backdrop-blur-md">
-          <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span>Generating activity heatmap...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Generating activity heatmap..." />;
   }
 
   return (
@@ -242,52 +190,20 @@ export function Monthly() {
 
         {/* Range Switcher Pill Group matching monthly.html .range-switch */}
         <div className="flex flex-col items-end gap-3 shrink-0">
-          <div
-            className="inline-flex items-center gap-[2px] p-[4px] border border-white/[0.16] rounded-full shadow-xl"
-            style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-            role="group"
-            aria-label="Date range"
-          >
-            {RANGE_PRESETS.map((p, i) => (
-              <button
-                key={p.label}
-                onClick={() => setPresetIdx(i)}
-                className={`border-none bg-transparent text-[13px] font-medium px-[16px] py-[8px] rounded-full transition-all whitespace-nowrap cursor-pointer ${
-                  i === presetIdx
-                    ? "bg-[#a855f7] text-white font-semibold"
-                    : "text-[#a1a1aa] hover:text-[#f4f4f5]"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {presetIdx === 3 && (
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={customStart}
-                onChange={(e) => setCustomStart(e.target.value)}
-                className="bg-[#141416] border border-white/10 text-purple-300 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-[#a855f7]"
-              />
-              <span className="text-xs text-[#a1a1aa]">to</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={(e) => setCustomEnd(e.target.value)}
-                className="bg-[#141416] border border-white/10 text-purple-300 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-[#a855f7]"
-              />
-            </div>
-          )}
+          <RangeSwitcher
+            presets={RANGE_PRESETS_MONTHLY}
+            activeIndex={presetIdx}
+            onSelect={setPresetIdx}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStartChange={setCustomStart}
+            onCustomEndChange={setCustomEnd}
+          />
         </div>
       </header>
 
       {/* Card 1: Stat Grid matching monthly.html .stat-grid */}
-      <section
-        className="border border-white/[0.16] rounded-[14px] overflow-hidden shadow-2xl"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-      >
+      <GlassCard className="!p-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.09]">
           <div className="p-[20px_22px]">
             <p className="text-[11px] font-semibold tracking-[0.07em] uppercase text-[#a1a1aa] m-0 mb-[10px]">
@@ -329,12 +245,11 @@ export function Monthly() {
             <p className="text-[13px] text-[#a1a1aa] mt-[6px] m-0">{peakDay.date}</p>
           </div>
         </div>
-      </section>
+      </GlassCard>
 
       {/* Card 2: Section Panel Activity Heatmap Grid matching monthly.html .section-panel & .heatmap */}
-      <section
-        className="p-[24px] border border-white/[0.16] rounded-[14px] shadow-2xl relative overflow-hidden"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[24px]"
         aria-label="Activity heatmap"
       >
         <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 mb-[20px]">
@@ -430,13 +345,12 @@ export function Monthly() {
           <span className="inline-block w-[12px] h-[12px] rounded-[3px] bg-[#a855f7]" />
           <span>More</span>
         </div>
-      </section>
+      </GlassCard>
 
       {/* Card 3: Application Usage Breakdown Table with Icons */}
       {appLeaderboard.length > 0 && (
-        <section
-          className="p-[24px] border border-white/[0.16] rounded-[14px] shadow-2xl relative overflow-hidden space-y-4"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+        <GlassCard
+          className="p-[24px] space-y-4"
         >
           <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 pb-3 border-b border-white/[0.09]">
             Application Usage Breakdown
@@ -476,11 +390,8 @@ export function Monthly() {
               );
             })}
           </div>
-        </section>
+        </GlassCard>
       )}
     </div>
   );
 }
-
-
-

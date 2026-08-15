@@ -1,56 +1,11 @@
 import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useAppDetail } from "../hooks/useAppDetail";
-import { formatDuration, daysAgo, todayDateString } from "../lib/constants";
-import {
-  SiGooglechrome,
-  SiSpotify,
-  SiZoom,
-  SiFirefox,
-  SiDiscord,
-  SiFigma,
-  SiBrave,
-  SiNotion,
-  SiTelegram,
-} from "react-icons/si";
-import { FaSlack, FaTerminal } from "react-icons/fa";
-import { VscVscode } from "react-icons/vsc";
-
-const RANGE_PRESETS = [
-  { label: "7d", days: 7 },
-  { label: "30d", days: 30 },
-  { label: "90d", days: 90 },
-  { label: "Custom", days: 0 },
-];
-
-const AppIcon = ({ name }) => {
-  const n = (name || "").toLowerCase();
-  if (n.includes("chrome")) return <SiGooglechrome color="#4285F4" size={32} />;
-  if (n.includes("slack")) return <FaSlack color="#E01E5A" size={32} />;
-  if (n.includes("code") || n.includes("codium")) return <VscVscode color="#007ACC" size={32} />;
-  if (n.includes("spotify")) return <SiSpotify color="#1DB954" size={32} />;
-  if (n.includes("zoom")) return <SiZoom color="#2D8CFF" size={32} />;
-  if (n.includes("firefox")) return <SiFirefox color="#FF7139" size={32} />;
-  if (n.includes("discord")) return <SiDiscord color="#5865F2" size={32} />;
-  if (n.includes("figma")) return <SiFigma color="#F24E1E" size={32} />;
-  if (n.includes("brave")) return <SiBrave color="#FF1B2D" size={32} />;
-  if (n.includes("notion")) return <SiNotion color="#FFFFFF" size={32} />;
-  if (n.includes("telegram")) return <SiTelegram color="#26A5E4" size={32} />;
-  if (
-    n.includes("terminal") ||
-    n.includes("konsole") ||
-    n.includes("kitty") ||
-    n.includes("alacritty") ||
-    n.includes("bash")
-  ) {
-    return <FaTerminal color="#A1A1AA" size={28} />;
-  }
-  return (
-    <div className="w-[36px] h-[36px] rounded-[10px] flex items-center justify-center text-[16px] font-bold bg-[#27272a] text-[#e4e4e7] border border-white/10 uppercase shrink-0">
-      {(name || "A").slice(0, 1)}
-    </div>
-  );
-};
+import { formatDuration, daysAgo, todayDateString, RANGE_PRESETS_APP_DETAIL } from "../lib/constants";
+import { AppIcon } from "../components/ui/AppIcon";
+import { LoadingState } from "../components/ui/LoadingState";
+import { GlassCard } from "../components/ui/GlassCard";
+import { RangeSwitcher } from "../components/ui/RangeSwitcher";
 
 function smoothPath(pts) {
   if (pts.length < 2) return "";
@@ -77,7 +32,7 @@ export function AppDetail() {
   const [customStart, setCustomStart] = useState(daysAgo(89));
   const [customEnd, setCustomEnd] = useState(todayDateString());
 
-  const preset = RANGE_PRESETS[presetIdx];
+  const preset = RANGE_PRESETS_APP_DETAIL[presetIdx];
   const presetDays = preset?.days ?? 30;
   const startDate = presetDays > 0 ? daysAgo(presetDays - 1) : customStart;
   const endDate = presetDays > 0 ? daysAgo(0) : customEnd;
@@ -177,14 +132,7 @@ export function AppDetail() {
   }, [detail]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#141416]/90 border border-white/10 text-purple-300 font-medium backdrop-blur-md">
-          <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-          <span>Fetching application session metrics...</span>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Fetching application session metrics..." />;
   }
 
   const W = 1000;
@@ -216,83 +164,44 @@ export function AppDetail() {
 
       {/* Range Switcher Pill Group matching application.html .range-switch */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-[24px]">
-        <div
-          className="inline-flex items-center gap-[2px] p-[4px] border border-white/[0.16] rounded-full shadow-xl"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-          role="group"
-          aria-label="Date range"
-        >
-          {RANGE_PRESETS.map((p, i) => (
-            <button
-              key={p.label}
-              onClick={() => setPresetIdx(i)}
-              className={`border-none bg-transparent text-[13px] font-medium px-[18px] py-[8px] rounded-full transition-all whitespace-nowrap cursor-pointer ${
-                i === presetIdx
-                  ? "bg-[#a855f7] text-white font-semibold"
-                  : "text-[#a1a1aa] hover:text-[#f4f4f5]"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        {presetIdx === 3 && (
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="bg-[#141416] border border-white/10 text-purple-300 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-[#a855f7]"
-            />
-            <span className="text-xs text-[#a1a1aa]">to</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="bg-[#141416] border border-white/10 text-purple-300 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-[#a855f7]"
-            />
-          </div>
-        )}
+        <RangeSwitcher
+          presets={RANGE_PRESETS_APP_DETAIL}
+          activeIndex={presetIdx}
+          onSelect={setPresetIdx}
+          customStart={customStart}
+          customEnd={customEnd}
+          onCustomStartChange={setCustomStart}
+          onCustomEndChange={setCustomEnd}
+        />
       </div>
 
       {/* Stat Cards Grid matching application.html .stat-grid */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-[16px] mb-[24px]" aria-label="App summary stats">
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Total Time</p>
           <div className="text-[32px] font-bold text-[#f4f4f5] leading-[1.15] tracking-[-0.01em]">
             {formatDuration(totalSeconds)}
           </div>
-        </div>
+        </GlassCard>
 
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Daily Average</p>
           <div className="text-[32px] font-bold text-[#f4f4f5] leading-[1.15] tracking-[-0.01em]">
             {formatDuration(avgDailySeconds)}
           </div>
-        </div>
+        </GlassCard>
 
-        <div
-          className="p-[18px_20px] rounded-[14px] border border-white/[0.16] shadow-xl relative overflow-hidden"
-          style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        >
+        <GlassCard className="p-[18px_20px]">
           <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Window Titles</p>
           <div className="text-[32px] font-bold text-[#f4f4f5] leading-[1.15] tracking-[-0.01em]">
             {windowTitlesCount}
           </div>
-        </div>
+        </GlassCard>
       </section>
 
       {/* Usage Over Time Area Chart Card matching application.html .chart-panel */}
-      <section
-        className="p-[24px_26px_18px] rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden mb-[24px]"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[24px_26px_18px] mb-[24px]"
         aria-label="Usage over time"
       >
         <div className="grid grid-cols-[64px_1fr] gap-x-[10px] w-full">
@@ -353,12 +262,11 @@ export function AppDetail() {
             <span key={d}>{d}</span>
           ))}
         </div>
-      </section>
+      </GlassCard>
 
       {/* Window Titles List Card matching application.html .titles-panel */}
-      <section
-        className="p-[22px_24px] rounded-[14px] border border-white/[0.16] shadow-2xl relative overflow-hidden"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
+      <GlassCard
+        className="p-[22px_24px]"
         aria-label="Window titles"
       >
         <h2 className="text-[16px] font-semibold text-[#f4f4f5] m-0 mb-[16px]">Window Titles</h2>
@@ -376,7 +284,7 @@ export function AppDetail() {
             </div>
           ))}
         </div>
-      </section>
+      </GlassCard>
     </div>
   );
 }
