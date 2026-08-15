@@ -45,9 +45,3 @@ Thumbs.db
 tmp/
 temp/
 
-# Workflow & design artifacts
-.commandcode/
-components.md
-component.md
-stitch*/
-
