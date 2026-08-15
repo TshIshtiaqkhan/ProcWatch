@@ -2,43 +2,9 @@ const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
 const { app } = require("electron");
-const { logger } = require("./logger");
-
-const DEFAULT_SETTINGS = {
-  polling_interval_seconds: "5",
-  idle_threshold_seconds: "90",
-  data_retention_days: "never",
-  launch_on_login: "false",
-  start_minimized: "true",
-  close_to_tray: "true",
-  first_run_complete: "false",
-  focus_session_duration_minutes: "25",
-  focus_session_break_minutes: "5",
-  focus_session_block_mode: "overlay",
-};
-
-const DEFAULT_CATEGORIES = {
-  code: "Development",
-  "code-oss": "Development",
-  codium: "Development",
-  firefox: "Browser",
-  "firefox-esr": "Browser",
-  chromium: "Browser",
-  "google-chrome-stable": "Browser",
-  slack: "Communication",
-  discord: "Communication",
-  telegram: "Communication",
-  spotify: "Entertainment",
-  vlc: "Entertainment",
-  terminal: "System",
-  "gnome-terminal": "System",
-  kitty: "System",
-  alacritty: "System",
-  nautilus: "System",
-  thunar: "System",
-  gimp: "Creative",
-  inkscape: "Creative",
-};
+const { logger } = require("../utils/logger");
+const { getAppConfigDir } = require("../utils/paths");
+const { DEFAULT_SETTINGS, DEFAULT_CATEGORIES } = require("../configs");
 
 let dbConnection = null;
 
@@ -48,7 +14,7 @@ const pool = {
     if (!dbConnection) {
       throw new Error("Database not initialized");
     }
-    
+
     const newParams = [];
     // Replace Postgres style $1, $2 with ? placeholders and map params
     const sqliteSql = sql.replace(/\$(\d+)/g, (match, number) => {
@@ -56,7 +22,7 @@ const pool = {
       newParams.push(params[index]);
       return "?";
     });
-    
+
     const trimmed = sqliteSql.trim().toUpperCase();
     const isSelect = trimmed.startsWith("SELECT") || sqliteSql.includes("RETURNING");
 
@@ -85,10 +51,7 @@ function getPool() {
 }
 
 async function initDatabase() {
-  const dbDir = path.join(
-    process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config"),
-    "screen-time-app"
-  );
+  const dbDir = getAppConfigDir();
   fs.mkdirSync(dbDir, { recursive: true });
   const dbPath = path.join(dbDir, "screen_time.db");
 
@@ -96,14 +59,14 @@ async function initDatabase() {
 
   try {
     dbConnection = new Database(dbPath);
-    
+
     // Run integrity check
     const check = dbConnection.prepare("PRAGMA integrity_check").get();
     if (!check || check.integrity_check !== "ok") {
       logger.error("Database integrity check failed. Database file is corrupted.");
       throw new Error("Corrupted database");
     }
-    
+
     dbConnection.pragma("journal_mode = WAL");
   } catch (err) {
     logger.error("Failed to open SQLite database file, attempting recovery:", err.message);
@@ -111,7 +74,7 @@ async function initDatabase() {
       try { dbConnection.close(); } catch {}
       dbConnection = null;
     }
-    
+
     // Try to move corrupted database file to backup and recreate
     try {
       const backupPath = `${dbPath}.corrupted-${Date.now()}`;
@@ -119,7 +82,7 @@ async function initDatabase() {
         fs.renameSync(dbPath, backupPath);
         logger.info(`Corrupted database file backed up to: ${backupPath}`);
       }
-      
+
       // Re-initialize a fresh DB
       dbConnection = new Database(dbPath);
       dbConnection.pragma("journal_mode = WAL");
@@ -144,14 +107,14 @@ async function initDatabase() {
     const migrationPath = app.isPackaged
       ? path.join(process.resourcesPath, "migrations.sql")
       : path.join(__dirname, "migrations.sql");
-    
+
     logger.info(`Running migration from: ${migrationPath}`);
     const migrationSql = fs.readFileSync(migrationPath, "utf8");
-    
+
     // Execute migration in transaction
     dbConnection.transaction(() => {
       dbConnection.exec(migrationSql);
-      
+
       // Seed settings
       const insertSetting = dbConnection.prepare(
         "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
@@ -213,7 +176,6 @@ async function initDatabase() {
     })();
   }
 
-
   return pool;
 }
 
@@ -247,12 +209,22 @@ async function closeDatabase() {
   }
 }
 
+function getAllSettings() {
+  const rows = dbConnection.prepare("SELECT key, value FROM settings").all();
+  const settings = {};
+  for (const row of rows) {
+    settings[row.key] = row.value;
+  }
+  return settings;
+}
+
 module.exports = {
-  DEFAULT_SETTINGS,
+  ...require("../configs"),
   getPool,
   initDatabase,
   getSetting,
   setSetting,
+  getAllSettings,
   purgeOldSessions,
   closeDatabase,
 };

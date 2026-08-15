@@ -1,6 +1,6 @@
 const { powerMonitor } = require("electron");
-const { getPool, getSetting } = require("./database");
-const { logger } = require("./logger");
+const { getPool, getSetting } = require("../db");
+const { logger } = require("../utils/logger");
 
 let currentSession = null;
 let pollTimer = null;
@@ -78,34 +78,18 @@ async function openSession(appName, windowTitle, startTime, isIdle) {
   };
 }
 
-async function updateIdleSessionEnd(endTime) {
-  if (currentSession && currentSession.is_idle === 1 && currentSession.id) {
-    const pool = getPool();
-    const start = new Date(currentSession.start_time).getTime();
-    const end = new Date(endTime).getTime();
-    const duration = Math.round((end - start) / 1000);
-    await pool.query(
-      "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
-      [endTime, duration, currentSession.id]
-    );
-    currentSession.end_time = endTime;
-    currentSession.duration_seconds = duration;
-  }
-}
-
-async function updateActiveSessionEnd(endTime) {
-  if (currentSession && currentSession.is_idle === 0 && currentSession.id) {
-    const pool = getPool();
-    const start = new Date(currentSession.start_time).getTime();
-    const end = new Date(endTime).getTime();
-    const duration = Math.round((end - start) / 1000);
-    await pool.query(
-      "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
-      [endTime, duration, currentSession.id]
-    );
-    currentSession.end_time = endTime;
-    currentSession.duration_seconds = duration;
-  }
+async function updateSessionEnd(endTime) {
+  if (!currentSession || !currentSession.id) return;
+  const pool = getPool();
+  const start = new Date(currentSession.start_time).getTime();
+  const end = new Date(endTime).getTime();
+  const duration = Math.round((end - start) / 1000);
+  await pool.query(
+    "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
+    [endTime, duration, currentSession.id]
+  );
+  currentSession.end_time = endTime;
+  currentSession.duration_seconds = duration;
 }
 
 // ─── Poll Loop ───────────────────────────────────────────────────────────────
@@ -125,7 +109,7 @@ async function pollActiveWindow() {
         await openSession("Idle", null, now, 1);
       } else {
         // Still idle — update end_time so crash doesn't lose duration
-        await updateIdleSessionEnd(now);
+        await updateSessionEnd(now);
       }
       return;
     }
@@ -147,7 +131,7 @@ async function pollActiveWindow() {
         await closeSession(now);
         await openSession("Idle", null, now, 1);
       } else {
-        await updateIdleSessionEnd(now);
+        await updateSessionEnd(now);
       }
       return;
     }
@@ -165,7 +149,7 @@ async function pollActiveWindow() {
       await openSession(appName, windowTitle, now, 0);
     } else {
       // Same app+title as before — update end_time to prevent data loss on crash
-      await updateActiveSessionEnd(now);
+      await updateSessionEnd(now);
     }
   } catch (err) {
     // Never crash the tracker loop

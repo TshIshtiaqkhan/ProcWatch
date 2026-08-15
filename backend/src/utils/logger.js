@@ -1,12 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const { app } = require("electron");
+const { getAppConfigDir, formatDateString } = require("./paths");
 
-const LOG_DIR = path.join(
-  process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config"),
-  "screen-time-app",
-  "logs"
-);
+const LOG_DIR = path.join(getAppConfigDir(), "logs");
 
 const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5MB per file
 
@@ -19,7 +15,7 @@ function cleanOldLogs() {
     const files = fs.readdirSync(LOG_DIR);
     const now = Date.now();
     const maxAgeMs = MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000;
-    
+
     for (const file of files) {
       if (file.startsWith("app-") && (file.endsWith(".log") || file.includes(".log."))) {
         const filePath = path.join(LOG_DIR, file);
@@ -42,8 +38,7 @@ function ensureLogDir() {
 }
 
 function getLogPath() {
-  const now = new Date();
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const date = formatDateString(new Date());
   return path.join(LOG_DIR, `app-${date}.log`);
 }
 
