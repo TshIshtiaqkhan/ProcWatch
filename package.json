@@ -1,5 +1,5 @@
 {
-  "name": "screen-time-tracker",
+  "name": "procwatch",
   "version": "1.0.0",
   "description": "A fully offline desktop app for Linux that tracks screen time per application",
   "main": "backend/src/main.js",
@@ -15,8 +15,8 @@
   },
   "build": {
     "electronVersion": "33.4.11",
-    "appId": "com.screentimetracker.app",
-    "productName": "Screen Time Tracker",
+    "appId": "com.procwatch.app",
+    "productName": "ProcWatch",
     "directories": {
       "output": "release"
     },
@@ -26,11 +26,11 @@
     ],
     "extraResources": [
       {
-        "from": "backend/src/migrations.sql",
+        "from": "backend/src/db/migrations.sql",
         "to": "migrations.sql"
       },
       {
-        "from": "assets/icon",
+        "from": "frontend/assets/icon",
         "to": "assets/icon"
       }
     ],
@@ -46,7 +46,7 @@
         }
       ],
       "category": "Utility",
-      "icon": "assets/icon"
+      "icon": "frontend/assets/icon"
     },
     "asar": true
   },

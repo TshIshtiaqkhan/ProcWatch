@@ -1,4 +1,4 @@
-# Screen Time Tracker
+# ProcWatch
 
 A fully offline desktop app for Linux (X11) that tracks how much time you spend in each application, stores everything locally, and presents it through a visual dashboard. Built with Electron and React.
 
@@ -379,13 +379,13 @@ on each poll tick:
 
 ### 7.2 Reliability
 - If `active-win` throws (e.g., no window focused, or X11 call fails), catch the error, log it, and skip that poll cycle gracefully — never crash the tracker loop
-- Wrap all DB writes in try/catch; log failures to a local log file (`~/.config/screen-time-app/logs/`)
+- Wrap all DB writes in try/catch; log failures to a local log file (`~/.config/procwatch/logs/`)
 - Handle system sleep/wake: pause tracking during suspend, resume cleanly on wake (Electron `powerMonitor` `suspend`/`resume` events)
 
 ### 7.3 Privacy & Offline Guarantee
 - No network permissions requested; app should function correctly with network interfaces fully disabled
 - No analytics, crash reporting, or telemetry SDKs (no Sentry, no Google Analytics, etc.)
-- All data stored in `~/.config/screen-time-app/data.sqlite` (or `$XDG_DATA_HOME` equivalent) — user owns and controls this file entirely
+- All data stored in `~/.config/procwatch/data.sqlite` (or `$XDG_DATA_HOME` equivalent) — user owns and controls this file entirely
 - Explicit privacy statement in-app and in README
 
 ### 7.4 Resource Usage
@@ -441,9 +441,9 @@ on each poll tick:
 - Bundle no auto-updater in v1 (auto-update would require a network check-in — conflicts with "fully offline" philosophy; if added later, must be fully opt-in and clearly disclosed)
 
 ### 9.3 App Metadata
-- App name: `Screen Time Tracker` (placeholder — customize to your domain/brand)
+- App name: `ProcWatch`
 - `.desktop` file with correct `Categories=Utility;` for Linux app menu integration
-- Icon set: 16/32/64/128/256/512px PNG + SVG
+- Icon set: 16/32/48/64/128/256/512/1024px PNG
 
 ---
 

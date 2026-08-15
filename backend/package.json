@@ -1,7 +1,7 @@
 {
-  "name": "screen-time-tracker-backend",
+  "name": "procwatch-backend",
   "version": "1.0.0",
-  "description": "Screen Time Tracker - Electron main process",
+  "description": "ProcWatch - Electron main process",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
