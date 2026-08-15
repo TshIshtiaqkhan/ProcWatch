@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Today } from "./pages/Today";
@@ -7,34 +7,6 @@ import { Monthly } from "./pages/Monthly";
 import { AppDetail } from "./pages/AppDetail";
 import { Settings } from "./pages/Settings";
 import { Onboarding } from "./pages/Onboarding";
-
-function AppContent({ isFirstRun, onCompleteOnboarding }) {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isFirstRun) {
-      navigate("/onboarding", { replace: true });
-    }
-  }, [isFirstRun, navigate]);
-
-  return (
-    <Routes>
-      <Route
-        path="/onboarding"
-        element={<Onboarding onComplete={onCompleteOnboarding} />}
-      />
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Today />} />
-        <Route path="/today" element={<Today />} />
-        <Route path="/weekly" element={<Weekly />} />
-        <Route path="/monthly" element={<Monthly />} />
-        <Route path="/app/:appName" element={<AppDetail />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
 
 export default function App() {
   const [isFirstRun, setIsFirstRun] = useState(false);
@@ -73,10 +45,26 @@ export default function App() {
 
   return (
     <HashRouter>
-      <AppContent
-        isFirstRun={isFirstRun}
-        onCompleteOnboarding={handleCompleteOnboarding}
-      />
+      <Routes>
+        <Route
+          path="/onboarding"
+          element={<Onboarding onComplete={handleCompleteOnboarding} />}
+        />
+        <Route element={<MainLayout />}>
+          <Route
+            path="/"
+            element={
+              isFirstRun ? <Navigate to="/onboarding" replace /> : <Today />
+            }
+          />
+          <Route path="/today" element={<Today />} />
+          <Route path="/weekly" element={<Weekly />} />
+          <Route path="/monthly" element={<Monthly />} />
+          <Route path="/app/:appName" element={<AppDetail />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </HashRouter>
   );
 }

@@ -36,19 +36,26 @@ const getCachedSettings = () => cachedSettings;
 
 let tray = null;
 
-// Resolve tray icon from the existing PNG assets (nativeImage does NOT support SVG)
+// Resolve tray icon directory
 const trayIconDir = resolveAssetPath("assets", "icon");
 
-function getTrayIcon() {
-  // Use 32x32 or 48x48 for crisp tray display across Linux desktop environments (GNOME, KDE, XFCE)
+function getTrayIconPath() {
   for (const size of ["32x32.png", "48x48.png", "64x64.png", "16x16.png", "256x256.png"]) {
     const iconFile = path.join(trayIconDir, size);
     if (fs.existsSync(iconFile)) {
-      const img = nativeImage.createFromPath(iconFile);
-      if (!img.isEmpty()) {
-        return img;
-      }
+      return iconFile;
     }
+  }
+  const fallback = path.resolve(__dirname, "..", "..", "frontend", "assets", "icon", "32x32.png");
+  if (fs.existsSync(fallback)) return fallback;
+  return null;
+}
+
+function getTrayIcon() {
+  const iconPath = getTrayIconPath();
+  if (iconPath && fs.existsSync(iconPath)) {
+    const img = nativeImage.createFromPath(iconPath);
+    if (!img.isEmpty()) return img;
   }
   return nativeImage.createEmpty();
 }
@@ -112,11 +119,26 @@ function buildTrayContextMenu(summaryItems = [], isPaused = false) {
 }
 
 function createTray() {
-  const icon = getTrayIcon();
-  if (icon.isEmpty()) {
-    logger.error("Failed to load any tray icon — tray may be invisible");
+  const iconPath = getTrayIconPath();
+  const iconImage = getTrayIcon();
+
+  try {
+    // On Linux AppIndicator, passing the string path directly is the most compatible
+    if (iconPath && fs.existsSync(iconPath)) {
+      tray = new Tray(iconPath);
+    } else {
+      tray = new Tray(iconImage);
+    }
+  } catch (err) {
+    logger.error("Failed to create Tray with path, trying NativeImage:", err);
+    try {
+      tray = new Tray(iconImage);
+    } catch (fallbackErr) {
+      logger.error("Failed to create Tray with NativeImage:", fallbackErr);
+      return;
+    }
   }
-  tray = new Tray(icon);
+
   tray.setToolTip("ProcWatch");
   tray.setContextMenu(buildTrayContextMenu([], getIsPaused()));
   updateTrayMenu();
@@ -170,7 +192,10 @@ function updateTrayMenu() {
 // ─── Window ──────────────────────────────────────────────────────────────────
 
 async function createWindow() {
-  const startMinimized =
+  const isExplicitlyHidden =
+    process.argv.includes("--hidden") || process.argv.includes("--minimized");
+  const shouldStartMinimized =
+    isExplicitlyHidden &&
     cachedSettings.start_minimized === "true" &&
     cachedSettings.first_run_complete === "true";
 
@@ -197,9 +222,10 @@ async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: !startMinimized,
+    show: !shouldStartMinimized,
     autoHideMenuBar: true,
     icon: appIcon,
+    backgroundColor: "#09090b",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -218,7 +244,6 @@ async function createWindow() {
   // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
   mainWindow.setIcon(appIcon);
 
-
   const isDev = process.env.NODE_ENV === "development";
 
   if (isDev) {
@@ -227,6 +252,11 @@ async function createWindow() {
     mainWindow.webContents.session.clearCache().catch(() => {});
     const frontendPath = path.join(__dirname, "..", "..", "frontend", "dist", "index.html");
     mainWindow.loadFile(frontendPath);
+  }
+
+  if (!shouldStartMinimized) {
+    mainWindow.show();
+    mainWindow.focus();
   }
 
   mainWindow.on("close", (e) => {

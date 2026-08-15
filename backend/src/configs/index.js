@@ -3,7 +3,7 @@ const DEFAULT_SETTINGS = {
   idle_threshold_seconds: "90",
   data_retention_days: "never",
   launch_on_login: "false",
-  start_minimized: "true",
+  start_minimized: "false",
   close_to_tray: "true",
   first_run_complete: "false",
   focus_session_duration_minutes: "25",
