@@ -40,18 +40,16 @@ let tray = null;
 const trayIconDir = resolveAssetPath("assets", "icon");
 
 function getTrayIcon() {
-  // Use 16x16 for tray, fall back to larger sizes
-  for (const size of ["16x16.png", "32x32.png", "48x48.png", "icon.png"]) {
+  // Use 32x32 or 48x48 for crisp tray display across Linux desktop environments (GNOME, KDE, XFCE)
+  for (const size of ["32x32.png", "48x48.png", "64x64.png", "16x16.png", "256x256.png"]) {
     const iconFile = path.join(trayIconDir, size);
     if (fs.existsSync(iconFile)) {
       const img = nativeImage.createFromPath(iconFile);
       if (!img.isEmpty()) {
-        // Resize to 16x16 for consistent tray display
-        return img.resize({ width: 16, height: 16 });
+        return img;
       }
     }
   }
-  // Ultimate fallback: create a tiny 16x16 blue square PNG
   return nativeImage.createEmpty();
 }
 
@@ -65,6 +63,54 @@ function showOrRestoreWindow() {
   }
 }
 
+function buildTrayContextMenu(summaryItems = [], isPaused = false) {
+  const summaryLabels =
+    summaryItems.length > 0
+      ? summaryItems.map((label) => ({ label, enabled: false }))
+      : [{ label: "No data yet", enabled: false }];
+
+  return Menu.buildFromTemplate([
+    {
+      label: "Open ProcWatch",
+      click: () => {
+        showOrRestoreWindow();
+      },
+    },
+    {
+      type: "separator",
+    },
+    {
+      label: "Today's Summary",
+      submenu: summaryLabels,
+    },
+    {
+      type: "separator",
+    },
+    {
+      label: isPaused ? "Resume Tracking" : "Pause Tracking",
+      click: () => {
+        if (isPaused) {
+          setIsPaused(false);
+          startTracking();
+        } else {
+          stopTracking();
+          setIsPaused(true);
+        }
+        updateTrayMenu();
+      },
+    },
+    {
+      type: "separator",
+    },
+    {
+      label: "Quit ProcWatch",
+      click: () => {
+        app.quit();
+      },
+    },
+  ]);
+}
+
 function createTray() {
   const icon = getTrayIcon();
   if (icon.isEmpty()) {
@@ -72,6 +118,7 @@ function createTray() {
   }
   tray = new Tray(icon);
   tray.setToolTip("ProcWatch");
+  tray.setContextMenu(buildTrayContextMenu([], getIsPaused()));
   updateTrayMenu();
 
   tray.on("click", () => {
@@ -108,59 +155,16 @@ function updateTrayMenu() {
   if (!tray) return;
 
   const isPaused = getIsPaused();
-
-  getTodaySummary().then((summaryItems) => {
-    if (!tray) return;
-
-    const summaryLabels = summaryItems.length > 0
-      ? summaryItems.map((label) => ({ label, enabled: false }))
-      : [{ label: "No data yet", enabled: false }];
-
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: "Open Dashboard",
-        click: () => {
-          showOrRestoreWindow();
-        },
-      },
-      {
-        type: "separator",
-      },
-      {
-        label: "Today's Summary",
-        submenu: summaryLabels,
-      },
-      {
-        type: "separator",
-      },
-      {
-        label: isPaused ? "Resume Tracking" : "Pause Tracking",
-        click: () => {
-          if (isPaused) {
-            setIsPaused(false);
-            startTracking();
-          } else {
-            stopTracking();
-            setIsPaused(true);
-          }
-          updateTrayMenu();
-        },
-      },
-      {
-        type: "separator",
-      },
-      {
-        label: "Quit",
-        click: () => {
-          app.quit();
-        },
-      },
-    ]);
-
-    tray.setContextMenu(contextMenu);
-  });
-
   tray.setToolTip(isPaused ? "ProcWatch (Paused)" : "ProcWatch");
+
+  getTodaySummary()
+    .then((summaryItems) => {
+      if (!tray) return;
+      tray.setContextMenu(buildTrayContextMenu(summaryItems, isPaused));
+    })
+    .catch((err) => {
+      logger.error("Failed to update tray summary:", err);
+    });
 }
 
 // ─── Window ──────────────────────────────────────────────────────────────────

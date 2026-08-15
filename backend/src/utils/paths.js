@@ -1,6 +1,8 @@
 const path = require("path");
 const fs = require("fs");
-const { app } = require("electron");
+const os = require("os");
+const electron = require("electron");
+const app = typeof electron === "object" && electron.app ? electron.app : null;
 
 const OLD_CONFIG_DIR_NAME = "screen-time-app";
 const CONFIG_DIR_NAME = "procwatch";
@@ -9,8 +11,12 @@ const CONFIG_DIR_NAME = "procwatch";
  * Returns the app config directory, using XDG_CONFIG_HOME or ~/.config fallback.
  */
 function getAppConfigDir() {
+  const home = (app && typeof app.getPath === "function")
+    ? app.getPath("home")
+    : process.env.HOME || os.homedir();
+
   return path.join(
-    process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config"),
+    process.env.XDG_CONFIG_HOME || path.join(home, ".config"),
     CONFIG_DIR_NAME
   );
 }
@@ -20,8 +26,12 @@ function getAppConfigDir() {
 // logs, and settings move with the rename. No-ops on fresh installs.
 (function migrateConfigDir() {
   try {
+    const home = (app && typeof app.getPath === "function")
+      ? app.getPath("home")
+      : process.env.HOME || os.homedir();
+
     const base =
-      process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config");
+      process.env.XDG_CONFIG_HOME || path.join(home, ".config");
     const oldDir = path.join(base, OLD_CONFIG_DIR_NAME);
     const newDir = path.join(base, CONFIG_DIR_NAME);
     if (fs.existsSync(oldDir) && !fs.existsSync(newDir)) {
@@ -40,7 +50,7 @@ function getAppConfigDir() {
  * Resolves asset paths correctly for both dev and packaged mode.
  */
 function resolveAssetPath(...segments) {
-  if (app.isPackaged) {
+  if (app && app.isPackaged) {
     return path.join(process.resourcesPath, ...segments);
   }
   // paths.js lives at backend/src/utils/, so three levels up reaches the project root;
