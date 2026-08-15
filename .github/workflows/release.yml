@@ -47,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release and Upload Assets
+      - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -61,10 +61,9 @@ jobs:
 
       - name: Publish to Snap Store
         uses: snapcore/action-publish@v1
-        if: startsWith(github.ref, 'refs/tags/') && env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        if: startsWith(github.ref, 'refs/tags/') && secrets.SNAPCRAFT_TOKEN != ''
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
         with:
           snap: release/*.snap
           channel: stable
-
