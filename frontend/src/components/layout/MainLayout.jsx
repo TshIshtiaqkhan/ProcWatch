@@ -85,7 +85,7 @@ export function MainLayout() {
   return (
     <div className="flex h-screen bg-[#050505] relative overflow-hidden text-[#f4f4f5] selection:bg-[#004fff]/30">
       {/* Global Interactive Canvas Grid Backdrop */}
-      <InteractiveGridPattern width={24} height={24} hoverColor="rgba(0, 79, 255, 0.4)" dotColor="#31afd4" />
+      <InteractiveGridPattern width={24} height={24} />
 
       {/* Global Constant Sidebar */}
       <aside

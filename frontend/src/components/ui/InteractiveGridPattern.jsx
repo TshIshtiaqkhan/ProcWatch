@@ -4,8 +4,7 @@ export function InteractiveGridPattern({
   width = 24,
   height = 24,
   className = "",
-  hoverColor = "rgba(0, 79, 255, 0.45)", // Cobalt/Electric Blue fill
-  dotColor = "#31afd4", // Cyan center dot
+  hoverColor = "rgba(0, 79, 255, 0.25)",
 }) {
   const canvasRef = useRef(null);
   const activeCellsRef = useRef(new Map());
@@ -28,7 +27,7 @@ export function InteractiveGridPattern({
       const cols = Math.ceil(canvas.width / width);
       const rows = Math.ceil(canvas.height / height);
 
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.035)";
       ctx.lineWidth = 1;
       ctx.beginPath();
 
@@ -53,7 +52,7 @@ export function InteractiveGridPattern({
         drawStaticGrid();
 
         const now = Date.now();
-        const fadeDuration = 700; // ms
+        const fadeDuration = 600; // ms
 
         activeCellsRef.current.forEach((cell, key) => {
           const elapsed = now - cell.time;
@@ -64,15 +63,9 @@ export function InteractiveGridPattern({
             const cellX = cell.col * width;
             const cellY = cell.row * height;
 
-            // Active cell glow in Cobalt Electric Blue
-            ctx.fillStyle = `rgba(0, 79, 255, ${0.4 * alpha})`;
+            // Subtle cell highlight without any dots
+            ctx.fillStyle = `rgba(0, 79, 255, ${0.2 * alpha})`;
             ctx.fillRect(cellX + 1, cellY + 1, width - 2, height - 2);
-
-            // Center cyan dot
-            ctx.fillStyle = `rgba(49, 175, 212, ${0.8 * alpha})`;
-            ctx.beginPath();
-            ctx.arc(cellX + width / 2, cellY + height / 2, 1.5, 0, Math.PI * 2);
-            ctx.fill();
           }
         });
 
@@ -109,7 +102,7 @@ export function InteractiveGridPattern({
       window.removeEventListener("mousemove", handleMouseMove);
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [width, height, hoverColor, dotColor]);
+  }, [width, height, hoverColor]);
 
   return (
     <canvas
