@@ -1,6 +1,7 @@
 const { powerMonitor } = require("electron");
 const { getPool, getSetting } = require("../db");
 const { logger } = require("../utils/logger");
+const { formatDateString } = require("../utils/paths");
 
 let currentSession = null;
 let pollTimer = null;
@@ -86,9 +87,10 @@ function openSession(appName, windowTitle, startTime, isIdle) {
 async function _persistSession() {
   if (!currentSession || currentSession.id) return;
   const pool = getPool();
+  const dateLocal = formatDateString(new Date(currentSession.start_time));
   const result = await pool.query(
-    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $3, 0, $4) RETURNING id",
-    [currentSession.app_name, currentSession.window_title, currentSession.start_time, currentSession.is_idle]
+    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle, date_local) VALUES ($1, $2, $3, $3, 0, $4, $5) RETURNING id",
+    [currentSession.app_name, currentSession.window_title, currentSession.start_time, currentSession.is_idle, dateLocal]
   );
   currentSession.id = result.rows[0]?.id;
 }
@@ -115,9 +117,10 @@ async function closeSession(endTime) {
     );
   } else {
     // Was never persisted (threshold just crossed at close time) — insert full record
+    const dateLocal = formatDateString(new Date(currentSession.start_time));
     await pool.query(
-      "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $4, $5, $6)",
-      [currentSession.app_name, currentSession.window_title, currentSession.start_time, endTime, duration, currentSession.is_idle]
+      "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle, date_local) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      [currentSession.app_name, currentSession.window_title, currentSession.start_time, endTime, duration, currentSession.is_idle, dateLocal]
     );
   }
 
