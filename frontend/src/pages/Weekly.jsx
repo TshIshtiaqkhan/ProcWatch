@@ -5,6 +5,7 @@ import { formatDuration, daysAgo } from "../lib/constants";
 import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
+import { SpotlightCard } from "../components/ui/SpotlightCard";
 
 // 6-Color Charting Palette (from design.md)
 const SERIES_PALETTE = [
@@ -195,29 +196,29 @@ export function Weekly() {
 
       {/* Summary Stat Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Summary stats">
-        <GlassCard className="p-5">
+        <SpotlightCard>
           <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Total Active Time</p>
           <div className="text-[30px] font-extrabold text-white tracking-tight leading-none">
             {formatDuration(totalSeconds)}
           </div>
           <p className="text-xs text-[#71717a] mt-2 font-mono">7 Days aggregated</p>
-        </GlassCard>
+        </SpotlightCard>
 
-        <GlassCard className="p-5">
+        <SpotlightCard>
           <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Daily Average</p>
           <div className="text-[30px] font-extrabold text-white tracking-tight leading-none">
             {formatDuration(avgDailySeconds)}
           </div>
           <p className="text-xs text-[#71717a] mt-2 font-mono">Per active day</p>
-        </GlassCard>
+        </SpotlightCard>
 
-        <GlassCard className="p-5">
+        <SpotlightCard>
           <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Top Application</p>
           <div className="text-[30px] font-extrabold text-white tracking-tight leading-none truncate">
             {topApp.name}
           </div>
           <p className="text-xs text-[#31afd4] mt-2 font-mono">{formatDuration(topApp.seconds)}</p>
-        </GlassCard>
+        </SpotlightCard>
       </section>
 
       {/* Daily Distribution Stacked Bar Chart Card */}

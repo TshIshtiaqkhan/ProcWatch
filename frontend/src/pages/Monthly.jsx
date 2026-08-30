@@ -5,6 +5,7 @@ import { formatDuration, daysAgo, todayDateString, RANGE_PRESETS_MONTHLY } from 
 import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
+import { SpotlightCard } from "../components/ui/SpotlightCard";
 import { RangeSwitcher } from "../components/ui/RangeSwitcher";
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -201,7 +202,7 @@ export function Monthly() {
       </header>
 
       {/* Card 1: Stat Grid */}
-      <GlassCard className="!p-0">
+      <SpotlightCard innerClassName="!p-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
           <div className="p-5">
             <p className="text-[11px] font-semibold tracking-wider uppercase text-[#a1a1aa] mb-2">
@@ -243,7 +244,7 @@ export function Monthly() {
             <p className="text-xs text-[#71717a] mt-2 font-mono">{peakDay.date}</p>
           </div>
         </div>
-      </GlassCard>
+      </SpotlightCard>
 
       {/* Card 2: Activity Heatmap Grid */}
       <GlassCard className="p-6 space-y-4" aria-label="Activity heatmap">
