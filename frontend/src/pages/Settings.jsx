@@ -155,10 +155,6 @@ export function Settings() {
           <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#17171a] border border-[#27272a] text-xs font-mono text-[#a1a1aa]">
             Preferences &amp; Engine
           </span>
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34d399]/10 border border-[#34d399]/30 text-xs font-semibold text-[#34d399] shadow-[0_0_15px_rgba(52,211,153,0.2)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-ping shrink-0" />
-            100% Offline SQLite
-          </span>
         </div>
         <h1 className="mt-3 text-2xl font-bold text-white tracking-tight leading-none">
           Settings &amp; Engine Control

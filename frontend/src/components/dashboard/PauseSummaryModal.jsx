@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Play, Activity } from "lucide-react";
+import { X, Play } from "lucide-react";
 import { formatDuration } from "../../lib/constants";
 import { AppIcon } from "../ui/AppIcon";
 
@@ -68,14 +68,14 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
       }}
     >
       <div
-        className="w-full max-w-[460px] bg-[#141416]/95 border border-[#27272a] rounded-[16px] p-7 relative overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.7)] text-[#f4f4f5] selection:bg-[#004fff]/30"
+        className="w-full max-w-[580px] bg-[#141416]/95 border border-[#27272a] rounded-[18px] p-8 relative overflow-hidden text-[#f4f4f5] selection:bg-[#004fff]/30"
         style={{
-          boxShadow: "0 20px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)",
+          boxShadow: "0 25px 70px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.07)",
         }}
       >
         {/* Faint scanline texture overlay */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-40"
+          className="pointer-events-none absolute inset-0 opacity-30"
           style={{
             background:
               "repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px)",
@@ -85,45 +85,38 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
         {/* Top Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-1.5 rounded-lg text-[#71717a] hover:text-[#f4f4f5] hover:bg-white/[0.06] transition-colors cursor-pointer z-20"
+          className="absolute top-6 right-6 p-2 rounded-xl text-[#71717a] hover:text-[#f4f4f5] hover:bg-white/[0.06] transition-colors cursor-pointer z-20"
           title="Dismiss (Esc)"
         >
-          <X size={16} />
+          <X size={18} />
         </button>
 
-        {/* Status Header */}
-        <div className="flex items-center gap-2 mb-1.5 relative z-10">
-          <span className="w-2 h-2 rounded-full bg-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.6)] animate-pulse" />
-          <span className="font-mono text-[11px] tracking-[0.14em] uppercase text-[#f59e0b] font-semibold">
-            Tracking paused
-          </span>
+        {/* Header Title & Subhead */}
+        <div className="mb-6 relative z-10">
+          <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
+            Session Snapshot
+          </h2>
+          <p className="text-xs text-[#a1a1aa] mt-1 font-medium">
+            Paused at <span className="font-mono text-[#f4f4f5]">{data?.pausedAt || "—"}</span> · today,{" "}
+            <span className="font-mono text-[#f4f4f5]">{data?.dateFormatted || "—"}</span>
+          </p>
         </div>
 
-        {/* Title & Subhead */}
-        <h2 className="text-[21px] font-bold text-white tracking-tight leading-snug mt-1 mb-0.5 relative z-10">
-          Session snapshot
-        </h2>
-        <p className="text-xs text-[#8b93a1] mb-5 relative z-10">
-          Paused at <span className="font-mono text-[#f4f4f5]">{data?.pausedAt || "—"}</span> · today,{" "}
-          <span className="font-mono text-[#f4f4f5]">{data?.dateFormatted || "—"}</span>
-        </p>
-
         {/* Total Time Block */}
-        <div className="flex items-baseline gap-2.5 pb-4 mb-4 border-b border-[#262b34] relative z-10">
-          <span className="text-[34px] font-extrabold text-white tracking-tight leading-none font-mono">
+        <div className="flex items-baseline gap-3 pb-5 mb-5 border-b border-[#27272a] relative z-10">
+          <span className="text-[40px] font-extrabold text-white tracking-tight leading-none font-mono">
             {data ? formatDuration(data.totalSeconds) : "0m"}
           </span>
-          <span className="text-xs text-[#8b93a1] font-medium">tracked</span>
-          <span className="ml-auto text-right text-xs text-[#8b93a1] leading-tight font-mono">
-            across<br />
-            <span className="text-[#31afd4] font-semibold">{data?.appCount || 0}</span> apps
+          <span className="text-xs text-[#a1a1aa] font-medium uppercase tracking-wider">tracked</span>
+          <span className="ml-auto text-right text-xs text-[#a1a1aa] leading-tight font-mono">
+            across <span className="text-[#31afd4] font-bold text-sm">{data?.appCount || 0}</span> applications
           </span>
         </div>
 
         {/* Ranked Apps List with Segmented Meters */}
-        <div className="space-y-3.5 my-2 max-h-[300px] overflow-y-auto pr-0.5 relative z-10">
+        <div className="space-y-4 my-3 max-h-[340px] overflow-y-auto pr-1 relative z-10">
           {loading ? (
-            <div className="py-8 text-center text-xs text-[#71717a] font-mono">
+            <div className="py-10 text-center text-xs text-[#71717a] font-mono">
               Loading snapshot...
             </div>
           ) : data?.apps && data.apps.length > 0 ? (
@@ -132,11 +125,11 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
               const isFirst = i === 0;
 
               return (
-                <div key={item.app_name} className="grid grid-cols-[22px_1fr_auto] items-center gap-3">
+                <div key={item.app_name} className="grid grid-cols-[24px_1fr_auto] items-center gap-3.5">
                   {/* Rank */}
                   <span
                     className={`font-mono text-xs font-semibold ${
-                      isFirst ? "text-[#f59e0b]" : "text-[#71717a]"
+                      isFirst ? "text-[#31afd4]" : "text-[#71717a]"
                     }`}
                   >
                     {String(i + 1).padStart(2, "0")}
@@ -145,14 +138,14 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
                   {/* App Info & Segmented Meter */}
                   <div className="min-w-0 pr-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <AppIcon name={item.app_name} size={14} />
-                      <span className="text-xs font-medium text-[#e8eaed] truncate">
+                      <AppIcon name={item.app_name} size={16} />
+                      <span className="text-xs font-semibold text-[#f4f4f5] truncate">
                         {item.app_name}
                       </span>
                     </div>
 
                     {/* Segmented Meter Bar */}
-                    <div className="h-1.5 flex gap-[2px] w-full">
+                    <div className="h-2 flex gap-[2px] w-full">
                       {Array.from({ length: SEGMENTS }).map((_, s) => {
                         const isFilled = s < filledCount;
                         return (
@@ -161,9 +154,9 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
                             className={`flex-1 rounded-[1px] transition-colors ${
                               isFilled
                                 ? isFirst
-                                  ? "bg-[#f59e0b] shadow-[0_0_4px_rgba(245,158,11,0.5)]"
-                                  : "bg-[#31afd4] shadow-[0_0_4px_rgba(49,175,212,0.4)]"
-                                : "bg-[#2a2f38]"
+                                  ? "bg-[#004fff] shadow-[0_0_6px_rgba(0,79,255,0.6)]"
+                                  : "bg-[#31afd4] shadow-[0_0_5px_rgba(49,175,212,0.45)]"
+                                : "bg-[#1f1f22]"
                             }`}
                           />
                         );
@@ -173,10 +166,10 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
 
                   {/* Duration & Percent */}
                   <div className="text-right whitespace-nowrap pl-2">
-                    <div className="font-mono text-xs font-medium text-[#f4f4f5]">
+                    <div className="font-mono text-xs font-semibold text-[#f4f4f5]">
                       {formatDuration(item.seconds)}
                     </div>
-                    <div className="font-mono text-[11px] text-[#8b93a1]">
+                    <div className="font-mono text-[11px] text-[#71717a]">
                       {item.percent}%
                     </div>
                   </div>
@@ -184,26 +177,22 @@ export function PauseSummaryModal({ isOpen, onClose, onResume }) {
               );
             })
           ) : (
-            <div className="py-6 text-center text-xs text-[#71717a] font-mono">
+            <div className="py-8 text-center text-xs text-[#71717a] font-mono">
               No active window activity recorded yet today.
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="mt-5 pt-4 border-t border-[#262b34] flex justify-between items-center relative z-10">
-          <span className="font-mono text-[11px] text-[#71717a] uppercase tracking-wider">
-            SQLITE · SESSIONS
-          </span>
-
+        {/* Centered Resume Tracking Footer */}
+        <div className="mt-6 pt-5 border-t border-[#27272a] flex justify-center items-center relative z-10">
           <button
             onClick={() => {
               onResume();
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#004fff] hover:bg-[#31afd4] text-white rounded-lg text-xs font-semibold tracking-wide transition-all shadow-[0_0_20px_rgba(0,79,255,0.4)] hover:shadow-[0_0_25px_rgba(49,175,212,0.5)] cursor-pointer"
+            className="flex items-center justify-center gap-2 px-7 py-2.5 bg-[#004fff] hover:bg-[#31afd4] text-white rounded-xl text-xs font-semibold tracking-wide transition-all shadow-[0_0_25px_rgba(0,79,255,0.45)] hover:shadow-[0_0_30px_rgba(49,175,212,0.55)] cursor-pointer"
           >
-            <Play size={13} fill="currentColor" />
-            Resume tracking
+            <Play size={14} fill="currentColor" />
+            Resume Tracking
           </button>
         </div>
       </div>

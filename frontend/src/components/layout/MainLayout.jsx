@@ -100,7 +100,6 @@ export function MainLayout() {
             <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">
               ProcWatch
             </h1>
-            <span className="text-[10px] text-[#71717a] font-mono leading-none mt-1 block">v2.0 Desktop</span>
           </div>
         </div>
 
