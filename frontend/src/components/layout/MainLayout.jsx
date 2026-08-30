@@ -12,6 +12,7 @@ import confetti from "canvas-confetti";
 import logo from "../../../assets/icon/256x256.png";
 import { useTrackingStatus } from "../../hooks/useTrackingStatus";
 import { InteractiveGridPattern } from "../ui/InteractiveGridPattern";
+import { PauseSummaryModal } from "../dashboard/PauseSummaryModal";
 import { useState, useEffect } from "react";
 
 const triggerSideCannons = () => {
@@ -62,6 +63,7 @@ const navItems = [
 
 export function MainLayout() {
   const { isPaused, toggle } = useTrackingStatus();
+  const [showPauseModal, setShowPauseModal] = useState(false);
   const [trackerReady, setTrackerReady] = useState(true);
   const [isWayland, setIsWayland] = useState(false);
   const location = useLocation();
@@ -133,11 +135,14 @@ export function MainLayout() {
 
         <div className="p-3.5 mt-auto border-t border-white/[0.06]">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (isPaused) {
                 triggerSideCannons(); // Trigger celebration on resuming!
+                await toggle();
+              } else {
+                await toggle();
+                setShowPauseModal(true);
               }
-              toggle();
             }}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold border transition-all cursor-pointer ${
               isPaused
@@ -165,6 +170,17 @@ export function MainLayout() {
         )}
         <Outlet />
       </main>
+
+      {/* Pause Snapshot Summary Modal */}
+      <PauseSummaryModal
+        isOpen={showPauseModal}
+        onClose={() => setShowPauseModal(false)}
+        onResume={async () => {
+          triggerSideCannons();
+          await toggle();
+          setShowPauseModal(false);
+        }}
+      />
     </div>
   );
 }

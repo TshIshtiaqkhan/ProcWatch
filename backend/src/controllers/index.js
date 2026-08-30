@@ -74,6 +74,46 @@ async function getToday(_e, _payload, _ctx) {
   }
 }
 
+async function getPauseSummary(_e, _payload, _ctx) {
+  try {
+    const pool = getPool();
+    const today = formatDateString(new Date());
+    const result = await pool.query(
+      `SELECT app_name, SUM(duration_seconds) as seconds
+       FROM sessions
+       WHERE date_local = $1 AND is_idle = 0
+       GROUP BY app_name
+       ORDER BY seconds DESC
+       LIMIT 8`,
+      [today]
+    );
+
+    const rows = result.rows || [];
+    const totalSeconds = rows.reduce((sum, r) => sum + (r.seconds || 0), 0);
+    const now = new Date();
+    const pausedAt = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const dateFormatted = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    const summary = rows.map((r, idx) => ({
+      rank: idx + 1,
+      app_name: r.app_name,
+      seconds: r.seconds,
+      percent: totalSeconds > 0 ? parseFloat(((r.seconds / totalSeconds) * 100).toFixed(1)) : 0,
+    }));
+
+    return ok({
+      totalSeconds,
+      appCount: rows.length,
+      pausedAt,
+      dateFormatted,
+      apps: summary,
+    });
+  } catch (err) {
+    logger.error("getPauseSummary error:", err);
+    return fail("QUERY_ERROR", String(err));
+  }
+}
+
 async function getRange(_e, payload, _ctx) {
   try {
     if (!payload || typeof payload.startDate !== "string" || typeof payload.endDate !== "string") {
@@ -450,6 +490,7 @@ async function completeOnboarding(_e, _payload, ctx) {
 
 module.exports = {
   getToday,
+  getPauseSummary,
   getRange,
   getAppDetail,
   pauseTracking,

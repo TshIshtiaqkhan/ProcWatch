@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 const electronAPI = {
   // Usage queries
   getToday: () => ipcRenderer.invoke("usage:getToday"),
+  getPauseSummary: () => ipcRenderer.invoke("usage:getPauseSummary"),
   getRange: (startDate, endDate) =>
     ipcRenderer.invoke("usage:getRange", { startDate, endDate }),
   getAppDetail: (appName, startDate, endDate) =>
