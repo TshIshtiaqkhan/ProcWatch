@@ -1,14 +1,11 @@
+// 6-Color Categorical Charting Palette (from design.md specification)
 export const CHART_COLORS = [
-  "#4C78A8",
-  "#F58518",
-  "#E45756",
-  "#72B7B2",
-  "#54A24B",
-  "#EECA3B",
-  "#B279A2",
-  "#FF9DA6",
-  "#9D755D",
-  "#BAB0AC",
+  "#3b82f6", // Electric Blue
+  "#22d3ee", // Cyan
+  "#f472b6", // Soft Pink
+  "#4ade80", // Mint Green
+  "#a78bfa", // Violet
+  "#94a3b8", // Slate
 ];
 
 export function formatDuration(totalSeconds) {

@@ -4,47 +4,31 @@ export function InteractiveGridPattern({
   width = 24,
   height = 24,
   className = "",
-  hoverColor = "rgba(59, 130, 246, 0.45)", // Blue fill
-  dotColor = "#60a5fa", // Bright blue center dot
+  hoverColor = "rgba(0, 79, 255, 0.45)", // Cobalt/Electric Blue fill
+  dotColor = "#31afd4", // Cyan center dot
 }) {
   const canvasRef = useRef(null);
   const activeCellsRef = useRef(new Map());
+  const isAnimatingRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    let animationFrameId;
+    let animationFrameId = null;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const handleMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const col = Math.floor(x / width);
-      const row = Math.floor(y / height);
-      const key = `${col},${row}`;
-
-      activeCellsRef.current.set(key, { col, row, time: Date.now() });
+      drawStaticGrid();
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-
-    const render = () => {
+    const drawStaticGrid = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       const cols = Math.ceil(canvas.width / width);
       const rows = Math.ceil(canvas.height / height);
 
-      // Draw subtle background grid lines
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.055)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
       ctx.lineWidth = 1;
       ctx.beginPath();
 
@@ -59,37 +43,73 @@ export function InteractiveGridPattern({
         ctx.lineTo(canvas.width, y);
       }
       ctx.stroke();
+    };
 
-      // Render active hovered cells with blue glow and center blue dot matching MagicUI
-      const now = Date.now();
-      const fadeDuration = 800; // ms
+    const startAnimationLoop = () => {
+      if (isAnimatingRef.current) return;
+      isAnimatingRef.current = true;
 
-      activeCellsRef.current.forEach((cell, key) => {
-        const elapsed = now - cell.time;
-        if (elapsed > fadeDuration) {
-          activeCellsRef.current.delete(key);
+      const render = () => {
+        drawStaticGrid();
+
+        const now = Date.now();
+        const fadeDuration = 700; // ms
+
+        activeCellsRef.current.forEach((cell, key) => {
+          const elapsed = now - cell.time;
+          if (elapsed > fadeDuration) {
+            activeCellsRef.current.delete(key);
+          } else {
+            const alpha = 1 - elapsed / fadeDuration;
+            const cellX = cell.col * width;
+            const cellY = cell.row * height;
+
+            // Active cell glow in Cobalt Electric Blue
+            ctx.fillStyle = `rgba(0, 79, 255, ${0.4 * alpha})`;
+            ctx.fillRect(cellX + 1, cellY + 1, width - 2, height - 2);
+
+            // Center cyan dot
+            ctx.fillStyle = `rgba(49, 175, 212, ${0.8 * alpha})`;
+            ctx.beginPath();
+            ctx.arc(cellX + width / 2, cellY + height / 2, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+
+        if (activeCellsRef.current.size > 0) {
+          animationFrameId = requestAnimationFrame(render);
         } else {
-          const alpha = 1 - elapsed / fadeDuration;
-          const cellX = cell.col * width;
-          const cellY = cell.row * height;
-
-          // Fill cell with original MagicUI blue hover glow
-          ctx.fillStyle = `rgba(59, 130, 246, ${0.35 * alpha})`;
-          ctx.fillRect(cellX + 1, cellY + 1, width - 2, height - 2);
+          isAnimatingRef.current = false;
+          drawStaticGrid();
         }
-      });
+      };
 
       animationFrameId = requestAnimationFrame(render);
     };
 
-    render();
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const col = Math.floor(x / width);
+      const row = Math.floor(y / height);
+      const key = `${col},${row}`;
+
+      activeCellsRef.current.set(key, { col, row, time: Date.now() });
+      startAnimationLoop();
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
-  }, [width, height]);
+  }, [width, height, hoverColor, dotColor]);
 
   return (
     <canvas

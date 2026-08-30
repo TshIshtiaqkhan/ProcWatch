@@ -1,20 +1,23 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useRangeData } from "../hooks/useRangeData";
 import { formatDuration, daysAgo } from "../lib/constants";
 import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
 
+// 6-Color Charting Palette (from design.md)
 const SERIES_PALETTE = [
-  "#848592", // series 0: other (gray)
-  "#b175fb", // series 1: google-chrome (purple)
-  "#358de5", // series 2: code (blue)
-  "#36be6e", // series 3: obsidian (green)
-  "#f28c04", // series 4: firefox-esr (orange)
-  "#e64d8c", // series 5: whatsapp (pink)
+  "#94a3b8", // 0: other / slate
+  "#3b82f6", // 1: electric blue
+  "#22d3ee", // 2: cyan
+  "#f472b6", // 3: soft pink
+  "#4ade80", // 4: mint
+  "#a78bfa", // 5: violet
 ];
 
 export function Weekly() {
+  const navigate = useNavigate();
   const startDate = daysAgo(6);
   const endDate = daysAgo(0);
   const { usage, loading } = useRangeData(startDate, endDate);
@@ -35,7 +38,6 @@ export function Weekly() {
 
     if (!usage || usage.length === 0) {
       sample = true;
-      // Demo dataset matching weekly.html specifications
       const demoAppsList = [
         { name: "google-chrome", weight: 0.35 },
         { name: "code", weight: 0.25 },
@@ -45,13 +47,13 @@ export function Weekly() {
         { name: "gnome-terminal", weight: 0.04 },
       ];
 
-      const demoDayMultipliers = [0.95, 0.92, 0.85, 0.90, 0.82, 0.40, 0.45]; // Mon to Sun
+      const demoDayMultipliers = [0.95, 0.92, 0.85, 0.90, 0.82, 0.40, 0.45];
 
       activeUsage = [];
       for (let i = 6; i >= 0; i--) {
         const dateStr = daysAgo(i);
         const dayIdx = 6 - i;
-        const dayTotalSecs = Math.round(36000 * demoDayMultipliers[dayIdx]); // ~10h max
+        const dayTotalSecs = Math.round(36000 * demoDayMultipliers[dayIdx]);
 
         demoAppsList.forEach((app) => {
           activeUsage.push({
@@ -86,7 +88,7 @@ export function Weekly() {
     // Build series legend
     const legend = top5.map((app, idx) => ({
       name: app.name,
-      color: SERIES_PALETTE[idx + 1],
+      color: SERIES_PALETTE[idx + 1] || SERIES_PALETTE[1],
     }));
 
     if (sorted.length > 5) {
@@ -105,7 +107,6 @@ export function Weekly() {
       const dayAppsMap = dayMap.get(dateStr) ?? new Map();
       let daySum = 0;
 
-      // Segments order bottom to top: [other, top5... top1]
       const segs = [];
 
       // Calculate other
@@ -121,12 +122,12 @@ export function Weekly() {
         segs.push({ name: "other", seconds: otherSecs, color: SERIES_PALETTE[0] });
       }
 
-      // Add top 5 apps in reverse (so top 1 is at top of stack)
+      // Add top 5 apps in reverse (top 1 at top of stack)
       for (let idx = top5.length - 1; idx >= 0; idx--) {
         const appName = top5[idx].name;
         const secs = dayAppsMap.get(appName) ?? 0;
         if (secs > 0) {
-          segs.push({ name: appName, seconds: secs, color: SERIES_PALETTE[idx + 1] });
+          segs.push({ name: appName, seconds: secs, color: SERIES_PALETTE[idx + 1] || SERIES_PALETTE[1] });
         }
       }
 
@@ -140,11 +141,9 @@ export function Weekly() {
       });
     }
 
-    // Calculate Y-Axis Max Hours (minimum 6h baseline, rounding up to nearest even hour)
     const rawHours = maxDaySecs / 3600;
     const computedMaxHours = Math.max(6, Math.ceil(rawHours / 2) * 2);
 
-    // Dynamic ticks (e.g. 0h, 2h, 4h, 6h, 8h, 10h, 12h)
     const ticks = [];
     const step = computedMaxHours <= 6 ? 1 : 2;
     for (let h = 0; h <= computedMaxHours; h += step) {
@@ -176,59 +175,66 @@ export function Weekly() {
   const rightApps = sortedApps.slice(Math.ceil(sortedApps.length / 2));
 
   return (
-    <div className="p-[28px_34px] max-w-[1400px] mx-auto space-y-6 animate-fadeIn pb-16">
-      {/* Header matching weekly.html .page-header */}
-      <header className="flex items-center justify-between mb-[24px]">
-        <h1 className="text-[28px] font-bold text-[#f4f4f5] tracking-tight leading-[34px] m-0">
-          Weekly Overview
-        </h1>
+    <div className="p-7 max-w-[1400px] mx-auto space-y-6 animate-fadeIn pb-16">
+      {/* Header */}
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight leading-none">
+            Weekly Overview
+          </h1>
+          <p className="text-xs text-[#a1a1aa] mt-2 font-normal">
+            Last 7 days usage aggregate &amp; application breakdown
+          </p>
+        </div>
         {isSampleData && (
-          <span className="text-[12px] font-medium text-purple-300 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">
+          <span className="text-[11px] font-semibold text-[#31afd4] px-3 py-1 rounded-full bg-[#31afd4]/10 border border-[#31afd4]/25">
             Sample Insights
           </span>
         )}
       </header>
 
-      {/* Summary Stat Grid matching weekly.html .stat-grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-[16px] mb-[24px]" aria-label="Summary stats">
-        <GlassCard className="p-[18px_20px]">
-          <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Total Active Time</p>
-          <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em]">
+      {/* Summary Stat Grid */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Summary stats">
+        <GlassCard className="p-5">
+          <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Total Active Time</p>
+          <div className="text-[30px] font-extrabold text-white tracking-tight leading-none">
             {formatDuration(totalSeconds)}
           </div>
-          <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">7 Days</p>
+          <p className="text-xs text-[#71717a] mt-2 font-mono">7 Days aggregated</p>
         </GlassCard>
 
-        <GlassCard className="p-[18px_20px]">
-          <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Daily Average</p>
-          <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em]">
+        <GlassCard className="p-5">
+          <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Daily Average</p>
+          <div className="text-[30px] font-extrabold text-white tracking-tight leading-none">
             {formatDuration(avgDailySeconds)}
           </div>
-          <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">Per Active Day</p>
+          <p className="text-xs text-[#71717a] mt-2 font-mono">Per active day</p>
         </GlassCard>
 
-        <GlassCard className="p-[18px_20px]">
-          <p className="text-[14px] text-[#a1a1aa] m-0 mb-[10px]">Top App</p>
-          <div className="text-[30px] font-bold text-[#f4f4f5] leading-[38px] tracking-[-0.01em] truncate">
+        <GlassCard className="p-5">
+          <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-2">Top Application</p>
+          <div className="text-[30px] font-extrabold text-white tracking-tight leading-none truncate">
             {topApp.name}
           </div>
-          <p className="text-[14px] text-[#a1a1aa] mt-[6px] m-0">{formatDuration(topApp.seconds)}</p>
+          <p className="text-xs text-[#31afd4] mt-2 font-mono">{formatDuration(topApp.seconds)}</p>
         </GlassCard>
       </section>
 
-      {/* Daily Distribution Stacked Bar Chart Card matching weekly.html .chart-wrap */}
-      <GlassCard
-        className="p-[22px_24px] mb-[24px]"
-        aria-label="Daily distribution"
-      >
-        <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 mb-[22px]">
-          Daily Distribution
-        </h2>
+      {/* Daily Distribution Stacked Bar Chart Card */}
+      <GlassCard className="p-6 space-y-4" aria-label="Daily distribution">
+        <div className="flex justify-between items-center pb-2 border-b border-white/[0.06]">
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            Daily Distribution
+          </h2>
+          <span className="text-xs font-mono text-[#71717a]">
+            Max: {maxHours}h
+          </span>
+        </div>
 
         {/* Stacked Chart Container */}
-        <div className="grid grid-cols-[36px_1fr] gap-x-[12px] w-full">
+        <div className="grid grid-cols-[36px_1fr] gap-x-3 w-full pt-2">
           {/* Y-Axis Labels */}
-          <div className="flex flex-col-reverse justify-between h-[220px] font-mono text-[12px] text-[#a1a1aa] text-right">
+          <div className="flex flex-col-reverse justify-between h-[220px] font-mono text-[11px] text-[#71717a] text-right">
             {yTicks.map((h) => (
               <span key={`y-${h}`}>{h}h</span>
             ))}
@@ -236,27 +242,26 @@ export function Weekly() {
 
           {/* Chart Plot Area */}
           <div>
-            <div className="relative h-[220px] grid grid-cols-7 items-end gap-[20px] border-b border-white/[0.09]">
+            <div className="relative h-[220px] grid grid-cols-7 items-end gap-5 border-b border-white/[0.08]">
               {/* Horizontal Gridlines */}
               <div className="absolute inset-0 flex flex-col-reverse justify-between pointer-events-none">
                 {yTicks.map((h) => (
-                  <span key={`grid-${h}`} className="border-t border-white/[0.09] h-0 block" />
+                  <span key={`grid-${h}`} className="border-t border-white/[0.04] h-0 block" />
                 ))}
               </div>
 
               {/* Day Bar Columns */}
               {dayColumns.map((col) => (
-                <div key={col.dateStr} className="relative flex justify-center h-full items-end z-10">
-                  <div className="w-[46px] h-full max-w-full flex flex-col-reverse justify-start rounded-t-[4px] overflow-hidden">
+                <div key={col.dateStr} className="relative flex justify-center h-full items-end z-10 group">
+                  <div className="w-9 h-full max-w-full flex flex-col-reverse justify-start rounded-t-md overflow-hidden bg-white/[0.02]">
                     {col.segments.map((seg) => {
-                      // 220px total plot area height
                       const rawPx = Math.round((seg.seconds / (maxHours * 3600)) * 220);
                       const pxHeight = seg.seconds > 0 ? Math.max(rawPx, 4) : 0;
 
                       return (
                         <div
                           key={`${col.dateStr}-${seg.name}`}
-                          className="w-full shrink-0 transition-all duration-300"
+                          className="w-full shrink-0 transition-all duration-300 hover:brightness-125"
                           style={{
                             height: `${pxHeight}px`,
                             backgroundColor: seg.color,
@@ -271,9 +276,9 @@ export function Weekly() {
             </div>
 
             {/* X-Axis Labels */}
-            <div className="grid grid-cols-7 gap-[20px] mt-[10px]">
+            <div className="grid grid-cols-7 gap-5 mt-2.5">
               {dayColumns.map((col) => (
-                <span key={`x-${col.dateStr}`} className="text-center text-[14px] text-[#a1a1aa]">
+                <span key={`x-${col.dateStr}`} className="text-center text-xs font-medium text-[#a1a1aa]">
                   {col.day}
                 </span>
               ))}
@@ -281,59 +286,61 @@ export function Weekly() {
           </div>
         </div>
 
-        {/* Chart Series Legend matching weekly.html .chart-legend */}
+        {/* Chart Series Legend */}
         {legendSeries.length > 0 && (
-          <div className="flex flex-wrap gap-[18px] mt-[18px] pl-[48px] text-[13px] text-[#a1a1aa]">
+          <div className="flex flex-wrap gap-4 pt-2 border-t border-white/[0.04] text-xs text-[#a1a1aa]">
             {legendSeries.map((s) => (
-              <span key={s.name} className="inline-flex items-center gap-[7px]">
-                <i className="w-[10px] h-[10px] rounded-[3px] inline-block" style={{ backgroundColor: s.color }} />
-                {s.name}
+              <span key={s.name} className="inline-flex items-center gap-2">
+                <i className="w-2.5 h-2.5 rounded-sm inline-block shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="truncate max-w-[120px]">{s.name}</span>
               </span>
             ))}
           </div>
         )}
       </GlassCard>
 
-      {/* Weekly Breakdown Card matching weekly.html .breakdown-grid */}
-      <GlassCard
-        className="p-[22px_24px]"
-        aria-label="Weekly breakdown"
-      >
-        <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-[24px] m-0 mb-[22px]">
-          Weekly Breakdown
-        </h2>
+      {/* Weekly Breakdown Card — Rows are clickable to navigate to /app/:appName */}
+      <GlassCard className="p-6 space-y-4" aria-label="Weekly breakdown">
+        <div className="flex justify-between items-center pb-2 border-b border-white/[0.06]">
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            Weekly Breakdown
+          </h2>
+          <span className="text-[11px] text-[#71717a] font-mono">
+            Click app to view detail
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-[40px] gap-y-2">
-          {/* Left Column Apps */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
           <div className="space-y-1">
             {leftApps.map((app) => (
               <div
                 key={app.name}
-                className="flex items-center gap-[12px] min-h-[46px] px-[4px] rounded-[8px] hover:bg-white/[0.035] transition-colors cursor-pointer"
+                onClick={() => navigate(`/app/${encodeURIComponent(app.name)}`)}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06] transition-all cursor-pointer group"
               >
-                <AppIcon name={app.name} />
-                <span className="flex-1 text-[15px] font-medium text-[#f4f4f5] truncate">
+                <AppIcon name={app.name} size={18} />
+                <span className="flex-1 text-xs font-semibold text-[#f4f4f5] group-hover:text-white truncate">
                   {app.name}
                 </span>
-                <span className="font-mono text-[14px] text-[#a1a1aa]">
+                <span className="font-mono text-xs text-[#a1a1aa] group-hover:text-[#31afd4] transition-colors">
                   {formatDuration(app.seconds)}
                 </span>
               </div>
             ))}
           </div>
 
-          {/* Right Column Apps */}
           <div className="space-y-1">
             {rightApps.map((app) => (
               <div
                 key={app.name}
-                className="flex items-center gap-[12px] min-h-[46px] px-[4px] rounded-[8px] hover:bg-white/[0.035] transition-colors cursor-pointer"
+                onClick={() => navigate(`/app/${encodeURIComponent(app.name)}`)}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06] transition-all cursor-pointer group"
               >
-                <AppIcon name={app.name} />
-                <span className="flex-1 text-[15px] font-medium text-[#f4f4f5] truncate">
+                <AppIcon name={app.name} size={18} />
+                <span className="flex-1 text-xs font-semibold text-[#f4f4f5] group-hover:text-white truncate">
                   {app.name}
                 </span>
-                <span className="font-mono text-[14px] text-[#a1a1aa]">
+                <span className="font-mono text-xs text-[#a1a1aa] group-hover:text-[#31afd4] transition-colors">
                   {formatDuration(app.seconds)}
                 </span>
               </div>

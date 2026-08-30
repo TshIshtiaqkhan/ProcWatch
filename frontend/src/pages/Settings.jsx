@@ -1,72 +1,81 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useCategories } from "../hooks/useCategories";
 import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
 
-const SliderCard = ({ label, min, max, value, onChange, readoutTag, formatValue, unit }) => {
-  const pct = Math.round(((value - min) / (max - min)) * 100);
+const SliderCard = ({ label, min, max, value, onChange, readoutTag, unit }) => {
+  const [localVal, setLocalVal] = useState(value);
+
+  useEffect(() => {
+    setLocalVal(value);
+  }, [value]);
+
+  const pct = Math.round(((localVal - min) / (max - min)) * 100);
+
   return (
-    <div className="bg-[#17171a] border border-white/[0.09] rounded-[12px] p-[18px_20px]">
-      <div className="flex justify-between items-baseline mb-[18px] gap-2">
-        <span className="text-[16px] font-semibold text-[#f4f4f5]">{label}</span>
-        <div className="flex items-baseline gap-[10px] whitespace-nowrap">
-          <span className="text-[14px] text-[#a1a1aa]">{readoutTag}</span>
-          <span className="font-mono text-[18px] font-semibold text-[#f4f4f5]">
-            {formatValue ? formatValue(value) : `${value}${unit}`}
+    <div className="bg-[#17171a] border border-[#27272a] rounded-xl p-4 space-y-3">
+      <div className="flex justify-between items-baseline gap-2">
+        <span className="text-xs font-semibold text-[#f4f4f5]">{label}</span>
+        <div className="flex items-baseline gap-2 whitespace-nowrap">
+          <span className="text-[11px] text-[#71717a] font-mono">{readoutTag}</span>
+          <span className="font-mono text-sm font-bold text-[#31afd4]">
+            {localVal}{unit}
           </span>
         </div>
       </div>
 
-      <div className="relative h-[6px] rounded-full bg-[#1f1f22] mb-[12px]">
+      <div className="relative h-1.5 rounded-full bg-[#1f1f22]">
         <div
-          className="absolute top-0 left-0 bottom-0 rounded-full bg-gradient-to-r from-[#7e22ce] to-[#a855f7]"
+          className="absolute top-0 left-0 bottom-0 rounded-full bg-gradient-to-r from-[#004fff] to-[#31afd4] shadow-[0_0_8px_rgba(0,79,255,0.4)]"
           style={{ width: `${pct}%` }}
         />
         <div
-          className="absolute top-1/2 w-[18px] h-[18px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.4),0_0_0_4px_rgba(168,85,247,0.18)] -translate-x-1/2 -translate-y-1/2 cursor-pointer pointer-events-none"
+          className="absolute top-1/2 w-4 h-4 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.5),0_0_0_3px_rgba(0,79,255,0.35)] -translate-x-1/2 -translate-y-1/2 pointer-events-none"
           style={{ left: `${pct}%` }}
         />
         <input
           type="range"
           min={min}
           max={max}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute -top-2 left-0 w-full h-[26px] opacity-0 cursor-pointer m-0"
+          value={localVal}
+          onChange={(e) => setLocalVal(Number(e.target.value))}
+          onPointerUp={() => onChange(localVal)}
+          onKeyUp={() => onChange(localVal)}
+          className="absolute -top-2 left-0 w-full h-5 opacity-0 cursor-pointer m-0"
         />
       </div>
 
-      <div className="flex justify-between font-mono text-[13px] text-[#a1a1aa]">
-        <span>
-          {min}
-          {unit}
-        </span>
-        <span>
-          {max}
-          {unit}
-        </span>
+      <div className="flex justify-between font-mono text-[11px] text-[#71717a]">
+        <span>{min}{unit}</span>
+        <span>{max}{unit}</span>
       </div>
     </div>
   );
 };
 
-const SwitchToggle = ({ label, checked, onChange }) => (
-  <div className="bg-[#17171a] border border-white/[0.09] rounded-[12px] p-[16px_20px] flex items-center justify-between gap-4">
-    <span className="text-[15px] font-semibold text-[#f4f4f5]">{label}</span>
+const SwitchToggle = ({ label, description, checked, onChange }) => (
+  <div className="bg-[#17171a] border border-[#27272a] rounded-xl p-4 flex items-center justify-between gap-4">
+    <div>
+      <span className="text-xs font-semibold text-[#f4f4f5] block">{label}</span>
+      {description && <span className="text-[11px] text-[#71717a] block mt-0.5">{description}</span>}
+    </div>
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-[46px] h-[26px] shrink-0 rounded-full transition-colors cursor-pointer border-none ${
-        checked ? "bg-gradient-to-r from-[#7e22ce] to-[#a855f7]" : "bg-[#3f3f46]"
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors duration-200 cursor-pointer border-none ${
+        checked
+          ? "bg-[#004fff] shadow-[0_0_12px_rgba(0,79,255,0.4)] border border-[#004fff]/60"
+          : "bg-[#3f3f46]"
       }`}
     >
       <span
-        className={`absolute top-[3px] left-[3px] w-[20px] h-[20px] rounded-full bg-white shadow-md transition-transform duration-160 ${
-          checked ? "translate-x-[20px]" : "translate-x-0"
+        className={`absolute top-[3px] left-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-md transition-transform duration-200 ${
+          checked ? "translate-x-5" : "translate-x-0"
         }`}
       />
     </button>
@@ -81,6 +90,7 @@ export function Settings() {
   const [clearConfirm, setClearConfirm] = useState("");
   const [exportFormat, setExportFormat] = useState("json");
   const [exportStatus, setExportStatus] = useState(null);
+  const [bannerNotice, setBannerNotice] = useState(null);
 
   if (!settings || Object.keys(settings).length === 0) {
     return <LoadingState message="Loading preference engine..." />;
@@ -89,63 +99,85 @@ export function Settings() {
   const pollInterval = Number(settings.polling_interval_seconds ?? 5);
   const idleThreshold = Number(settings.idle_threshold_seconds ?? 90);
 
+  const showNotification = (msg, isError = false) => {
+    setBannerNotice({ text: msg, isError });
+    setTimeout(() => setBannerNotice(null), 4500);
+  };
+
   const handleExport = async (format) => {
     const fmt = format || exportFormat;
     setExportFormat(fmt);
     if (!window.electronAPI) return;
     try {
       const res = await window.electronAPI.exportData(fmt);
-      if (res && res.success) {
-        setExportStatus(`Exported to ${res.path || "file"}`);
-        setTimeout(() => setExportStatus(null), 4000);
+      if (res && res.success && !res.data?.canceled) {
+        showNotification(`Export complete: ${res.data?.path || "File saved"}`);
       }
     } catch (e) {
-      console.error(e);
+      showNotification(`Export failed: ${e.message}`, true);
     }
   };
 
   const handleClear = async () => {
     if (clearConfirm.trim() !== "DELETE" || !window.electronAPI) return;
-    // Pass the typed token to the backend for server-side validation too
-    await window.electronAPI.clearAllData(clearConfirm.trim());
-    setClearConfirm("");
-    alert("All tracking data has been permanently cleared.");
+    try {
+      const res = await window.electronAPI.clearAllData(clearConfirm.trim());
+      if (res && res.success) {
+        setClearConfirm("");
+        showNotification("All tracking data has been permanently cleared from SQLite.");
+      } else {
+        showNotification(res?.error?.message || "Failed to clear data.", true);
+      }
+    } catch (err) {
+      showNotification(err.message || "Failed to clear data.", true);
+    }
   };
 
   return (
-    <div className="p-[28px_34px] max-w-[1400px] mx-auto space-y-6 animate-fadeIn pb-16">
-      {/* Hero Panel matching setting.html .hero-panel */}
-      <GlassCard className="p-[24px_28px]">
+    <div className="p-7 max-w-[1400px] mx-auto space-y-6 animate-fadeIn pb-16">
+      {/* Toast Feedback Notification Banner */}
+      {bannerNotice && (
+        <div
+          className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-medium backdrop-blur-md shadow-glass animate-fadeIn ${
+            bannerNotice.isError
+              ? "bg-[#902d41]/30 border-[#fb7185]/40 text-[#fb7185]"
+              : "bg-[#004fff]/15 border-[#004fff]/30 text-[#31afd4]"
+          }`}
+        >
+          {bannerNotice.isError ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{bannerNotice.text}</span>
+        </div>
+      )}
+
+      {/* Hero Panel */}
+      <GlassCard className="p-6">
         <div className="flex flex-wrap justify-between items-start gap-4">
-          <span className="inline-flex items-center px-[14px] py-[6px] rounded-full bg-[#17171a] border border-white/[0.16] text-[13px] font-medium text-[#a1a1aa]">
-            ProcWatch Preferences
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#17171a] border border-[#27272a] text-xs font-mono text-[#a1a1aa]">
+            Preferences &amp; Engine
           </span>
-          <span className="inline-flex items-center gap-2 px-[16px] py-[7px] rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[13px] font-semibold text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.2)] animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-            100% Offline Mode
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#34d399]/10 border border-[#34d399]/30 text-xs font-semibold text-[#34d399] shadow-[0_0_15px_rgba(52,211,153,0.2)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-ping shrink-0" />
+            100% Offline SQLite
           </span>
         </div>
-        <h1 className="mt-[16px] text-[34px] font-extrabold text-[#f4f4f5] leading-[1.15] tracking-[-0.02em] m-0">
+        <h1 className="mt-3 text-2xl font-bold text-white tracking-tight leading-none">
           Settings &amp; Engine Control
         </h1>
-        <p className="mt-[12px] text-[15px] leading-[22px] text-[#a1a1aa] max-w-[720px] m-0">
-          Configure background tracking intervals, system autostart options, application tags, and local SQLite data persistence.
+        <p className="mt-2 text-xs leading-relaxed text-[#a1a1aa] max-w-2xl">
+          Calibrate active window detection intervals, customize application categorization rules, export data backups, and configure system autostart.
         </p>
       </GlassCard>
 
-      {/* Tracking Engine Calibration Section matching setting.html .calibration-grid */}
-      <GlassCard
-        className="p-[24px_28px]"
-        aria-label="Tracking engine calibration"
-      >
-        <h2 className="text-[20px] font-bold text-[#f4f4f5] tracking-[-0.01em] m-0">
-          Tracking Engine Calibration
-        </h2>
-        <p className="mt-[8px] mb-[22px] text-[14px] text-[#a1a1aa] m-0">
-          Adjust how frequently active window polls are recorded and when idle detection triggers.
-        </p>
+      {/* Tracking Engine Calibration */}
+      <GlassCard className="p-6 space-y-4" aria-label="Tracking engine calibration">
+        <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
+          <Sliders size={16} className="text-[#31afd4]" />
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            Tracking Engine Calibration
+          </h2>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SliderCard
             label="Polling Frequency"
             min={1}
@@ -168,33 +200,33 @@ export function Settings() {
         </div>
       </GlassCard>
 
-      {/* System Behavior & Retention Section matching setting.html .behavior-grid */}
-      <GlassCard
-        className="p-[24px_28px]"
-        aria-label="System behavior and retention"
-      >
-        <h2 className="text-[20px] font-bold text-[#f4f4f5] tracking-[-0.01em] m-0">
-          System Behavior &amp; Retention
-        </h2>
-        <p className="mt-[8px] mb-[22px] text-[14px] text-[#a1a1aa] m-0">
-          Desktop tray integration, system login autostart, and automatic data retention policies.
-        </p>
+      {/* System Behavior & Retention */}
+      <GlassCard className="p-6 space-y-4" aria-label="System behavior and retention">
+        <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
+          <Shield size={16} className="text-[#31afd4]" />
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            System Behavior &amp; Retention
+          </h2>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SwitchToggle
             label="Close to System Tray"
+            description="Keep background tracking alive when window closes"
             checked={settings.close_to_tray === "true"}
             onChange={(v) => update({ close_to_tray: String(v) })}
           />
 
           <SwitchToggle
             label="Start Minimized"
+            description="Launch into system tray without opening window"
             checked={settings.start_minimized === "true"}
             onChange={(v) => update({ start_minimized: String(v) })}
           />
 
           <SwitchToggle
             label="Launch on System Login"
+            description="Automatically start ProcWatch when desktop starts"
             checked={settings.launch_on_login === "true"}
             onChange={async (v) => {
               await update({ launch_on_login: String(v) });
@@ -204,82 +236,68 @@ export function Settings() {
             }}
           />
 
-          {/* Retention Dropdown Row matching setting.html */}
-          <div className="bg-[#17171a] border border-white/[0.09] rounded-[12px] p-[16px_20px] flex items-center justify-between gap-4">
-            <span className="text-[15px] font-semibold text-[#f4f4f5]">Data Retention Policy</span>
-            <div className="relative shrink-0">
-              <select
-                aria-label="Data retention policy"
-                value={settings.data_retention_days ?? "never"}
-                onChange={(e) => update({ data_retention_days: e.target.value })}
-                className="appearance-none text-[14px] font-semibold text-[#f4f4f5] bg-[#1f1f22] border border-white/[0.16] rounded-[9px] py-[9px] pl-[14px] pr-[34px] cursor-pointer outline-none focus:border-[#a855f7]"
-              >
-                <option value="never">Keep Forever</option>
-                <option value="90">90 Days</option>
-                <option value="30">30 Days</option>
-                <option value="7">7 Days</option>
-              </select>
+          <div className="bg-[#17171a] border border-[#27272a] rounded-xl p-4 flex items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold text-[#f4f4f5] block">Data Retention Policy</span>
+              <span className="text-[11px] text-[#71717a] block mt-0.5">Purge older sessions daily</span>
             </div>
+            <select
+              aria-label="Data retention policy"
+              value={settings.data_retention_days ?? "never"}
+              onChange={(e) => update({ data_retention_days: e.target.value })}
+              className="text-xs font-semibold text-[#f4f4f5] bg-[#1f1f22] border border-[#27272a] rounded-lg py-1.5 px-3 cursor-pointer outline-none focus:border-[#004fff] transition-all font-mono"
+            >
+              <option value="never">Keep Forever</option>
+              <option value="90">90 Days</option>
+              <option value="30">30 Days</option>
+              <option value="7">7 Days</option>
+            </select>
           </div>
         </div>
       </GlassCard>
 
-      {/* Application Categorization Section matching setting.html .cat-table & .add-rule-box */}
-      <GlassCard
-        className="p-[24px_28px]"
-        aria-label="Application categorization"
-      >
-        <div className="flex items-center gap-[12px] mb-[18px]">
-          <span className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#7e22ce] to-[#a855f7] text-white">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-[17px] h-[17px]">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" />
-              <rect x="14" y="14" width="7" height="7" rx="1.5" />
-            </svg>
-          </span>
-          <h2 className="text-[20px] font-bold text-[#f4f4f5] tracking-[-0.01em] m-0">
+      {/* Application Categorization */}
+      <GlassCard className="p-6 space-y-4" aria-label="Application categorization">
+        <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
+          <Tag size={16} className="text-[#31afd4]" />
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
             Application Categorization
           </h2>
         </div>
 
         {/* Category Table */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse mt-[18px]">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="border-b border-white/[0.09] text-left text-[13px] font-semibold text-[#a1a1aa]">
-                <th className="px-[8px] pb-[12px]">Application</th>
-                <th className="px-[8px] pb-[12px]">Category</th>
-                <th className="px-[8px] pb-[12px] text-right">Actions</th>
+              <tr className="border-b border-white/[0.06] text-left text-xs font-semibold text-[#a1a1aa]">
+                <th className="px-2 pb-2">Application</th>
+                <th className="px-2 pb-2">Category</th>
+                <th className="px-2 pb-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {categories.map((cat) => (
-                <tr key={cat.app_name} className="border-b border-white/[0.09] last:border-none">
-                  <td className="py-[12px] px-[8px]">
-                    <div className="flex items-center gap-[12px]">
-                      <AppIcon name={cat.app_name} />
-                      <span className="text-[14px] font-medium text-[#f4f4f5]">{cat.app_name}</span>
+                <tr key={cat.app_name} className="border-b border-white/[0.04] last:border-none">
+                  <td className="py-2.5 px-2">
+                    <div className="flex items-center gap-3">
+                      <AppIcon name={cat.app_name} size={18} />
+                      <span className="text-xs font-medium text-[#f4f4f5]">{cat.app_name}</span>
                     </div>
                   </td>
-                  <td className="py-[12px] px-[8px]">
-                    <span className="inline-flex items-center px-[14px] py-[5px] rounded-full bg-[rgba(168,85,247,0.16)] text-[#c084fc] text-[13px] font-medium border border-[rgba(168,85,247,0.3)]">
+                  <td className="py-2.5 px-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#004fff]/15 text-[#31afd4] text-xs font-mono border border-[#004fff]/30">
                       {cat.category}
                     </span>
                   </td>
-                  <td className="py-[12px] px-[8px]">
-                    <div className="flex items-center justify-end gap-[14px]">
-                      <button
-                        type="button"
-                        onClick={() => remove(cat.app_name)}
-                        className="bg-none border-none text-[#a1a1aa] hover:text-[#fb7185] cursor-pointer p-[4px] transition-colors"
-                        title={`Delete rule for ${cat.app_name}`}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px]">
-                          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" />
-                        </svg>
-                      </button>
-                    </div>
+                  <td className="py-2.5 px-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => remove(cat.app_name)}
+                      className="p-1 rounded text-[#71717a] hover:text-[#fb7185] hover:bg-[#902d41]/20 transition-all cursor-pointer"
+                      title={`Delete rule for ${cat.app_name}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -287,11 +305,11 @@ export function Settings() {
           </table>
         </div>
 
-        {/* Add Rule Box matching setting.html .add-rule-box */}
-        <div className="mt-[20px] p-[18px_20px] bg-[#17171a] border border-white/[0.09] rounded-[12px]">
-          <p className="text-[14px] font-semibold text-[#f4f4f5] m-0 mb-[12px]">Add Rule</p>
+        {/* Add Rule Box */}
+        <div className="p-4 bg-[#17171a] border border-[#27272a] rounded-xl space-y-3">
+          <p className="text-xs font-semibold text-[#f4f4f5]">Add New Category Rule</p>
           <form
-            className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-[12px]"
+            className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3"
             onSubmit={async (e) => {
               e.preventDefault();
               if (newAppName.trim() && newCategory.trim()) {
@@ -303,24 +321,24 @@ export function Settings() {
           >
             <input
               type="text"
-              placeholder="Application process name"
+              placeholder="Application name (e.g. Code, Chrome)"
               value={newAppName}
               onChange={(e) => setNewAppName(e.target.value)}
-              className="text-[14px] text-[#f4f4f5] bg-[#1f1f22] border border-white/[0.16] rounded-[9px] p-[11px_14px] outline-none focus:border-[#a855f7]"
+              className="text-xs text-[#f4f4f5] bg-[#1f1f22] border border-[#27272a] rounded-lg px-3 py-2 outline-none focus:border-[#004fff] transition-all"
               required
             />
             <input
               type="text"
-              placeholder="Category label"
+              placeholder="Category label (e.g. Work, Media)"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="text-[14px] text-[#f4f4f5] bg-[#1f1f22] border border-white/[0.16] rounded-[9px] p-[11px_14px] outline-none focus:border-[#a855f7]"
+              className="text-xs text-[#f4f4f5] bg-[#1f1f22] border border-[#27272a] rounded-lg px-3 py-2 outline-none focus:border-[#004fff] transition-all"
               required
             />
             <button
               type="submit"
               disabled={!newAppName.trim() || !newCategory.trim()}
-              className="text-[14px] font-semibold text-white bg-[#a855f7] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed border-none rounded-[9px] p-[11px_20px] cursor-pointer whitespace-nowrap transition-all"
+              className="text-xs font-semibold text-white bg-[#004fff] hover:bg-[#31afd4] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg px-4 py-2 cursor-pointer whitespace-nowrap shadow-[0_0_15px_rgba(0,79,255,0.35)] transition-all"
             >
               Add Rule
             </button>
@@ -328,90 +346,70 @@ export function Settings() {
         </div>
       </GlassCard>
 
-      {/* Local Data Export & Backup Section matching setting.html .export-panel */}
-      <section
-        className="p-[20px_24px] border border-white/[0.16] rounded-[14px] shadow-2xl relative flex flex-wrap items-center justify-between gap-[20px]"
-        style={{ backgroundColor: "rgba(20, 20, 22, 0.92)", backdropFilter: "blur(14px)" }}
-        aria-label="Local data export and backup"
-      >
-        <div className="flex items-center gap-[12px]">
-          <span className="w-[32px] h-[32px] rounded-[9px] flex items-center justify-center shrink-0 bg-gradient-to-br from-[#7e22ce] to-[#a855f7] text-white">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-[17px] h-[17px]">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-            </svg>
-          </span>
-          <h2 className="text-[18px] font-bold text-[#f4f4f5] m-0">Local Data Export &amp; Backup</h2>
+      {/* Local Data Export */}
+      <GlassCard className="p-6 flex flex-wrap items-center justify-between gap-4" aria-label="Local data export">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#004fff]/15 border border-[#004fff]/30 flex items-center justify-center text-[#31afd4] shrink-0">
+            <Download size={16} />
+          </div>
+          <div>
+            <h2 className="text-xs font-semibold text-[#f4f4f5] uppercase tracking-wider">Local Data Export &amp; Backup</h2>
+            <p className="text-xs text-[#71717a] mt-0.5">Stream entire sessions database to JSON or CSV file</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-[10px]">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => handleExport("json")}
-            className="font-mono text-[12px] font-semibold tracking-[0.02em] text-white bg-gradient-to-br from-[#7e22ce] to-[#a855f7] border-none rounded-[9px] p-[12px_18px] cursor-pointer hover:brightness-110 transition-all"
+            className="text-xs font-mono font-semibold text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-lg px-3 py-2 cursor-pointer transition-all"
           >
-            JSON
+            Export JSON
           </button>
           <button
             type="button"
             onClick={() => handleExport("csv")}
-            className="font-mono text-[12px] font-semibold tracking-[0.02em] text-white bg-gradient-to-br from-[#7e22ce] to-[#a855f7] border-none rounded-[9px] p-[12px_18px] cursor-pointer hover:brightness-110 transition-all"
+            className="text-xs font-mono font-semibold text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-lg px-3 py-2 cursor-pointer transition-all"
           >
-            CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => handleExport(exportFormat)}
-            className="text-[14px] font-semibold text-white bg-[#a855f7] hover:brightness-110 border-none rounded-[9px] p-[12px_22px] cursor-pointer transition-all whitespace-nowrap"
-          >
-            Export Database ({exportFormat.toUpperCase()})
+            Export CSV
           </button>
         </div>
-        {exportStatus && (
-          <div className="w-full text-right text-[13px] text-[#34d399] font-medium">
-            {exportStatus}
-          </div>
-        )}
-      </section>
+      </GlassCard>
 
-      {/* Danger Zone Section matching setting.html .danger-panel */}
+      {/* Danger Zone */}
       <section
-        className="p-[22px_26px] border border-[rgba(251,113,133,0.35)] rounded-[14px] shadow-2xl relative"
+        className="p-6 border border-[#fb7185]/30 rounded-2xl relative shadow-2xl space-y-3"
         style={{
-          background: "linear-gradient(180deg, rgba(127, 29, 29, 0.28), rgba(127, 29, 29, 0.14))",
+          background: "linear-gradient(180deg, rgba(144, 45, 65, 0.25), rgba(144, 45, 65, 0.08))",
           backdropFilter: "blur(14px)",
         }}
-        aria-label="Danger zone: irreversible data purge"
+        aria-label="Danger zone"
       >
-        <div className="flex items-center gap-[10px] text-[#fb7185] text-[17px] font-bold">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-[19px] h-[19px]">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
+        <div className="flex items-center gap-2 text-[#fb7185] text-xs font-bold uppercase tracking-wider">
+          <AlertTriangle size={16} />
           Danger Zone — Irreversible Data Purge
         </div>
-        <p className="mt-[16px] mb-[4px] text-[15px] font-semibold text-[#f4f4f5] m-0">Irreversible Data Purge</p>
-        <p className="mb-[18px] text-[14px] leading-[20px] text-[#a1a1aa] max-w-[640px] m-0">
-          Permanently deletes all tracked application usage data from local storage. This action cannot be undone — export a backup first if you may need this data later.
+        <p className="text-xs text-[#a1a1aa] max-w-2xl leading-relaxed">
+          Permanently deletes all recorded application sessions from local SQLite storage. This action cannot be undone.
         </p>
 
-        <div className="flex flex-wrap gap-[12px]">
+        <div className="flex flex-wrap gap-3 pt-2">
           <input
             type="text"
-            placeholder='Type "DELETE" to enable clear button'
+            placeholder='Type "DELETE" to confirm'
             value={clearConfirm}
             onChange={(e) => setClearConfirm(e.target.value)}
-            className="flex-1 min-w-[220px] text-[14px] text-[#f4f4f5] bg-black/30 border border-[rgba(251,113,133,0.35)] rounded-[9px] p-[11px_14px] outline-none focus:border-[#fb7185] focus:shadow-[0_0_0_3px_rgba(251,113,133,0.18)]"
+            className="flex-1 min-w-[200px] text-xs text-[#f4f4f5] bg-black/40 border border-[#fb7185]/30 rounded-lg px-3 py-2 outline-none focus:border-[#fb7185] focus:shadow-[0_0_12px_rgba(251,113,133,0.25)] font-mono transition-all"
             autoComplete="off"
           />
           <button
             type="button"
             disabled={clearConfirm.trim() !== "DELETE"}
             onClick={handleClear}
-            className={`text-[14px] font-semibold text-white rounded-[9px] p-[12px_24px] border-none whitespace-nowrap transition-all ${
+            className={`text-xs font-semibold text-white rounded-lg px-4 py-2 transition-all whitespace-nowrap ${
               clearConfirm.trim() === "DELETE"
-                ? "bg-gradient-to-br from-[#b91c1c] to-[#ef4444] cursor-pointer hover:brightness-110 opacity-100"
-                : "bg-gradient-to-br from-[#b91c1c] to-[#ef4444] cursor-not-allowed opacity-50"
+                ? "bg-gradient-to-br from-[#b91c1c] to-[#ef4444] shadow-[0_0_15px_rgba(239,68,68,0.4)] cursor-pointer hover:brightness-110"
+                : "bg-white/[0.05] text-[#71717a] border border-white/[0.08] cursor-not-allowed"
             }`}
           >
             Clear All Data

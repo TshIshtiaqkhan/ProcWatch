@@ -15,18 +15,18 @@ export function Slider({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-sm font-semibold text-slate-200 tracking-wide">{label}</span>
+          <span className="text-xs font-semibold text-[#f4f4f5] tracking-wide">{label}</span>
           {description && (
-            <p className="text-xs text-slate-400 mt-0.5">{description}</p>
+            <p className="text-[11px] text-[#71717a] mt-0.5">{description}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
           {badgeText && (
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#004fff]/15 text-[#31afd4] border border-[#004fff]/30">
               {badgeText}
             </span>
           )}
-          <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-indigo-300 font-mono text-xs font-semibold tabular-nums shadow-inner">
+          <span className="px-2.5 py-1 rounded-lg bg-[#17171a] border border-[#27272a] text-[#31afd4] font-mono text-xs font-bold tabular-nums">
             {value}{unit}
           </span>
         </div>
@@ -40,16 +40,15 @@ export function Slider({
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           style={{
-            background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #1e293b ${percentage}%, #1e293b 100%)`
+            background: `linear-gradient(to right, #004fff 0%, #31afd4 ${percentage}%, #1f1f22 ${percentage}%, #1f1f22 100%)`
           }}
           className="custom-slider"
         />
       </div>
-      <div className="flex justify-between text-[11px] font-medium text-slate-500 px-0.5">
+      <div className="flex justify-between text-[11px] font-mono text-[#71717a] px-0.5">
         <span>{min}{unit}</span>
         <span>{max}{unit}</span>
       </div>
     </div>
   );
 }
-

@@ -84,7 +84,7 @@ export function Onboarding({ onComplete }) {
   const StepIcon = current.icon;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#09090b] text-[#f4f4f5] p-6 selection:bg-[#6366f1]/30">
+    <div className="flex items-center justify-center min-h-screen bg-[#09090b] text-[#f4f4f5] p-6 selection:bg-[#004fff]/30">
       <div className="w-full max-w-xl">
         {/* Progress dots */}
         <div className="flex justify-center items-center gap-2 mb-8">
@@ -94,9 +94,9 @@ export function Onboarding({ onComplete }) {
               onClick={() => setStep(i)}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === step
-                  ? "w-8 bg-[#6366f1]"
+                  ? "w-8 bg-[#004fff] shadow-[0_0_10px_rgba(0,79,255,0.6)]"
                   : i < step
-                  ? "w-2 bg-[#818cf8]/50"
+                  ? "w-2 bg-[#31afd4]/60"
                   : "w-2 bg-white/10"
               }`}
             />
@@ -104,28 +104,28 @@ export function Onboarding({ onComplete }) {
         </div>
 
         {/* Main Card */}
-        <GlassCard className="p-8 shadow-2xl relative overflow-hidden border-white/[0.12]">
+        <GlassCard className="p-8 shadow-2xl relative overflow-hidden border-[#27272a]">
           {/* Header & Icon */}
           <div className="text-center mb-7">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#6366f1]/10 border border-[#6366f1]/20 mb-4 shadow-[0_0_25px_rgba(99,102,241,0.15)]">
-              <StepIcon size={26} className="text-[#818cf8]" />
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#004fff]/15 border border-[#004fff]/30 mb-4 shadow-[0_0_25px_rgba(0,79,255,0.25)]">
+              <StepIcon size={26} className="text-[#31afd4]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#f4f4f5] tracking-tight mb-1.5">
+            <h1 className="text-2xl font-bold text-white tracking-tight mb-1.5">
               {current.title}
             </h1>
-            <p className="text-[13px] font-medium text-[#818cf8] mb-3">
+            <p className="text-xs font-semibold text-[#31afd4] mb-3 uppercase tracking-wider">
               {current.subtitle}
             </p>
-            <p className="text-[14px] text-[#a1a1aa] leading-relaxed max-w-md mx-auto">
+            <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-md mx-auto">
               {current.description}
             </p>
           </div>
 
           {/* Dependency check (shown on step 0) */}
           {step === 0 && deps && (
-            <div className="bg-[#18181b]/80 border border-white/[0.08] rounded-xl p-4 mb-6 space-y-3">
+            <div className="bg-[#18181b]/80 border border-[#27272a] rounded-xl p-4 mb-6 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-[13px] font-semibold text-[#f4f4f5]">
+                <h3 className="text-xs font-semibold text-[#f4f4f5] uppercase tracking-wider">
                   System Dependencies (Linux X11)
                 </h3>
                 <span className="text-[11px] text-[#71717a] uppercase font-mono">
@@ -139,38 +139,30 @@ export function Onboarding({ onComplete }) {
               </div>
 
               {deps.isWayland && (
-                <div className="flex items-start gap-2 text-[#fbbf24] text-[12px] mt-2 p-2.5 rounded-lg bg-[#fbbf24]/10 border border-[#fbbf24]/20">
+                <div className="flex items-start gap-2 text-[#fbbf24] text-xs mt-2 p-2.5 rounded-lg bg-[#fbbf24]/10 border border-[#fbbf24]/20">
                   <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[#fbbf24]" />
                   <span>
-                    Wayland detected — foreground window queries may be restricted by compositor security. Idle detection remains active.
+                    Wayland detected — foreground window title queries are restricted by compositor security. Idle detection remains active.
                   </span>
                 </div>
               )}
 
               {(!deps.xdotool || !deps.wmctrl) && (
                 <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-[#a1a1aa] space-y-2">
-                  <p className="text-[12px] font-medium text-[#e4e4e7]">
-                    Install missing dependencies for active tracking:
+                  <p className="text-xs font-medium text-[#f4f4f5]">
+                    Install missing dependencies for active window tracking:
                   </p>
-                  
-                  <div className="flex items-center justify-between bg-[#09090b]/80 border border-white/[0.1] rounded-lg px-3 py-2 font-mono text-[12px] text-[#818cf8]">
+
+                  <div className="flex items-center justify-between bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-2 font-mono text-xs text-[#31afd4]">
                     <code>sudo apt install -y xdotool wmctrl</code>
                     <button
                       onClick={() => copyCommand("sudo apt install -y xdotool wmctrl")}
-                      className="ml-2 p-1 text-[#71717a] hover:text-[#f4f4f5] transition-colors"
+                      className="ml-2 p-1 text-[#71717a] hover:text-white transition-colors cursor-pointer"
                       title="Copy command"
                     >
-                      {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      {copied ? <Check size={14} className="text-[#34d399]" /> : <Copy size={14} />}
                     </button>
                   </div>
-
-                  <details className="text-[11px] text-[#71717a] cursor-pointer pt-1">
-                    <summary className="hover:text-[#a1a1aa] transition-colors">Other Linux distributions</summary>
-                    <div className="mt-2 space-y-1.5 pl-2 font-mono">
-                      <div className="text-[11px] text-[#a1a1aa]">Fedora / RHEL: <code className="text-[#818cf8]">sudo dnf install xdotool wmctrl</code></div>
-                      <div className="text-[11px] text-[#a1a1aa]">Arch / Manjaro: <code className="text-[#818cf8]">sudo pacman -S xdotool wmctrl</code></div>
-                    </div>
-                  </details>
                 </div>
               )}
             </div>
@@ -180,7 +172,7 @@ export function Onboarding({ onComplete }) {
           <div className="flex justify-between items-center pt-2">
             <button
               onClick={() => setStep(Math.max(0, step - 1))}
-              className={`flex items-center gap-1 text-[13px] text-[#71717a] hover:text-[#f4f4f5] transition-colors ${
+              className={`flex items-center gap-1 text-xs font-medium text-[#71717a] hover:text-[#f4f4f5] transition-colors cursor-pointer ${
                 step === 0 ? "invisible" : ""
               }`}
             >
@@ -191,7 +183,7 @@ export function Onboarding({ onComplete }) {
             {step < STEPS.length - 1 ? (
               <button
                 onClick={() => setStep(step + 1)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-lg text-[13px] font-medium transition-all shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)]"
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#004fff] hover:bg-[#31afd4] text-white rounded-lg text-xs font-semibold transition-all shadow-[0_0_20px_rgba(0,79,255,0.35)] hover:shadow-[0_0_25px_rgba(49,175,212,0.45)] cursor-pointer"
               >
                 Next
                 <ChevronRight size={15} />
@@ -199,7 +191,7 @@ export function Onboarding({ onComplete }) {
             ) : (
               <button
                 onClick={handleFinish}
-                className="flex items-center gap-2 px-6 py-2.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-lg text-[13px] font-semibold transition-all shadow-[0_0_25px_rgba(99,102,241,0.35)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#004fff] hover:bg-[#31afd4] text-white rounded-lg text-xs font-semibold transition-all shadow-[0_0_25px_rgba(0,79,255,0.45)] hover:shadow-[0_0_30px_rgba(49,175,212,0.55)] cursor-pointer"
               >
                 Get Started
                 <ChevronRight size={15} />
@@ -217,20 +209,20 @@ function DepStatus({ label, ok, desc }) {
     <div className="flex items-center justify-between text-xs py-1 px-1.5 rounded-md hover:bg-white/[0.02]">
       <div className="flex items-center gap-2.5">
         {ok ? (
-          <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+          <CheckCircle size={15} className="text-[#34d399] shrink-0" />
         ) : (
-          <XCircle size={15} className="text-rose-400 shrink-0" />
+          <XCircle size={15} className="text-[#fb7185] shrink-0" />
         )}
         <div>
-          <span className={`font-mono font-medium ${ok ? "text-[#f4f4f5]" : "text-rose-200"}`}>{label}</span>
+          <span className={`font-mono font-medium ${ok ? "text-[#f4f4f5]" : "text-[#fb7185]"}`}>{label}</span>
           {desc && <span className="text-[11px] text-[#71717a] ml-2 hidden sm:inline">{desc}</span>}
         </div>
       </div>
       <span
-        className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+        className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border ${
           ok
-            ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-            : "text-rose-400 bg-rose-500/10 border-rose-500/20"
+            ? "text-[#34d399] bg-[#34d399]/10 border-[#34d399]/20"
+            : "text-[#fb7185] bg-[#fb7185]/10 border-[#fb7185]/20"
         }`}
       >
         {ok ? "Found" : "Missing"}

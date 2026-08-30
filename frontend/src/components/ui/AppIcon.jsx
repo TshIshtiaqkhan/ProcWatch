@@ -24,13 +24,17 @@ export function AppIcon({ name, size = 18 }) {
   
   if (iconConfig) {
     const Icon = iconConfig.component;
-    return <Icon size={size + iconConfig.sizeAdj} color={iconConfig.color} />;
+    return (
+      <div className="flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
+        <Icon size={size + iconConfig.sizeAdj} color={iconConfig.color} />
+      </div>
+    );
   }
 
   return (
     <div 
-      className="flex items-center justify-center bg-[#2A2A30] text-gray-300 font-bold rounded-lg shadow-inner"
-      style={{ width: size + 6, height: size + 6, fontSize: size * 0.6 }}
+      className="flex items-center justify-center bg-[#27272a] text-[#f4f4f5] font-bold rounded-md shrink-0 border border-white/[0.08]"
+      style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.55)) }}
     >
       {name ? name.charAt(0).toUpperCase() : "?"}
     </div>

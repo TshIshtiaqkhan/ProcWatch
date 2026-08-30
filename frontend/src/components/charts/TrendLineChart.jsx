@@ -14,15 +14,17 @@ export function TrendLineChart({ data }) {
   return (
     <ResponsiveContainer width="100%" height={250}>
       <LineChart data={data}>
-        <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} />
-        <YAxis tickFormatter={formatYAxis} stroke="#9ca3af" fontSize={12} />
+        <XAxis dataKey="date" stroke="#71717a" fontSize={11} axisLine={{ stroke: "#27272a" }} />
+        <YAxis tickFormatter={formatYAxis} stroke="#71717a" fontSize={11} axisLine={{ stroke: "#27272a" }} />
         <Tooltip
           formatter={(value) => [formatDuration(value), "Time"]}
           contentStyle={{
-            backgroundColor: "#1f2937",
-            border: "1px solid #374151",
-            borderRadius: "8px",
-            color: "#f3f4f6",
+            backgroundColor: "#141416",
+            border: "1px solid #27272a",
+            borderRadius: "10px",
+            color: "#f4f4f5",
+            fontSize: "12px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
         />
 
@@ -30,8 +32,9 @@ export function TrendLineChart({ data }) {
           type="monotone"
           dataKey="seconds"
           stroke={CHART_COLORS[0]}
-          strokeWidth={2}
-          dot={{ r: 4 }}
+          strokeWidth={2.5}
+          dot={{ r: 3, fill: "#31afd4", stroke: "#004fff", strokeWidth: 1.5 }}
+          activeDot={{ r: 5, fill: "#31afd4", stroke: "#ffffff", strokeWidth: 2 }}
         />
       </LineChart>
     </ResponsiveContainer>

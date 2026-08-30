@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Calendar,
   Settings,
@@ -10,16 +10,19 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import logo from "../../../assets/icon/256x256.png";
+import { useTrackingStatus } from "../../hooks/useTrackingStatus";
+import { InteractiveGridPattern } from "../ui/InteractiveGridPattern";
+import { useState, useEffect } from "react";
 
 const triggerSideCannons = () => {
-  const end = Date.now() + 3 * 1000;
-  const colors = ["#a855f7", "#60a5fa", "#34d399", "#fb7185", "#fbbf24"];
+  const end = Date.now() + 2.5 * 1000;
+  const colors = ["#004fff", "#31afd4", "#ff007f", "#34d399", "#22d3ee"];
 
   const frame = () => {
     if (Date.now() > end) return;
 
     confetti({
-      particleCount: 2,
+      particleCount: 3,
       angle: 60,
       spread: 55,
       startVelocity: 60,
@@ -27,7 +30,7 @@ const triggerSideCannons = () => {
       colors: colors,
     });
     confetti({
-      particleCount: 2,
+      particleCount: 3,
       angle: 120,
       spread: 55,
       startVelocity: 60,
@@ -40,15 +43,12 @@ const triggerSideCannons = () => {
 
   frame();
 };
-import { useTrackingStatus } from "../../hooks/useTrackingStatus";
-import { InteractiveGridPattern } from "../ui/InteractiveGridPattern";
-import { useState, useEffect } from "react";
 
 function AlertBanner({ children }) {
   return (
-    <div className="bg-yellow-900/30 border-b border-yellow-700/50 px-4 py-2 flex items-center gap-2 text-yellow-300 text-sm">
-      <AlertTriangle size={16} />
-      {children}
+    <div className="bg-[#fbbf24]/10 border-b border-[#fbbf24]/20 px-4 py-2.5 flex items-center gap-2.5 text-[#fbbf24] text-xs font-medium backdrop-blur-md">
+      <AlertTriangle size={15} className="shrink-0 text-[#fbbf24]" />
+      <span>{children}</span>
     </div>
   );
 }
@@ -64,6 +64,7 @@ export function MainLayout() {
   const { isPaused, toggle } = useTrackingStatus();
   const [trackerReady, setTrackerReady] = useState(true);
   const [isWayland, setIsWayland] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -79,57 +80,72 @@ export function MainLayout() {
     });
   }, []);
 
+  const isAppDetailActive = location.pathname.startsWith("/app/");
+
   return (
-    <div className="flex h-screen bg-[#050505] relative overflow-hidden text-[#f4f4f5]">
-      {/* Global Canvas Interactive Grid Backdrop with Blue Dots */}
-      <InteractiveGridPattern width={24} height={24} />
+    <div className="flex h-screen bg-[#050505] relative overflow-hidden text-[#f4f4f5] selection:bg-[#004fff]/30">
+      {/* Global Interactive Canvas Grid Backdrop */}
+      <InteractiveGridPattern width={24} height={24} hoverColor="rgba(0, 79, 255, 0.4)" dotColor="#31afd4" />
 
       {/* Global Constant Sidebar */}
       <aside
-        className="w-[220px] flex flex-col z-10 border-r border-white/[0.09] shrink-0"
-        style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(14px)" }}
+        className="w-[220px] flex flex-col z-10 border-r border-[#27272a]/80 shrink-0"
+        style={{ backgroundColor: "rgba(9, 9, 11, 0.75)", backdropFilter: "blur(16px)" }}
       >
-        <div className="p-6 flex items-center gap-2.5">
-          <img src={logo} alt="ProcWatch" className="w-[26px] h-[26px] rounded-[7px] shrink-0" />
-          <h1 className="text-base font-bold text-white tracking-tight leading-none">
-            ProcWatch
-          </h1>
+        <div className="p-5 flex items-center gap-3 border-b border-white/[0.04]">
+          <img src={logo} alt="ProcWatch" className="w-[26px] h-[26px] rounded-[7px] shrink-0 shadow-[0_0_12px_rgba(0,79,255,0.35)]" />
+          <div>
+            <h1 className="text-[15px] font-bold text-white tracking-tight leading-none">
+              ProcWatch
+            </h1>
+            <span className="text-[10px] text-[#71717a] font-mono leading-none mt-1 block">v2.0 Desktop</span>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 py-2 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1.5">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-[9px] text-sm font-medium transition-all ${
+                `flex items-center gap-2.5 px-3 py-2.5 rounded-[9px] text-xs font-semibold tracking-wide transition-all ${
                   isActive
-                    ? "bg-gradient-to-r from-blue-500/25 to-blue-500/5 text-[#60a5fa] shadow-[inset_0_0_0_1px_rgba(59,130,246,0.35)]"
+                    ? "bg-[#004fff] text-white shadow-[0_0_18px_rgba(0,79,255,0.45)] border border-[#004fff]/50"
                     : "text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-white/[0.045]"
                 }`
               }
             >
-              <Icon size={18} />
+              <Icon size={16} />
               {label}
             </NavLink>
           ))}
+
+          {isAppDetailActive && (
+            <div className="mt-3 pt-3 border-t border-white/[0.06] px-3">
+              <span className="text-[10px] font-semibold text-[#71717a] uppercase tracking-wider">Viewing App</span>
+              <div className="text-xs font-medium text-[#31afd4] truncate mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#31afd4] animate-pulse" />
+                App Insights
+              </div>
+            </div>
+          )}
         </nav>
 
-        <div className="p-4 mt-auto border-t border-white/[0.09]">
+        <div className="p-3.5 mt-auto border-t border-white/[0.06]">
           <button
             onClick={() => {
-              if (!isPaused) {
-                triggerSideCannons();
+              if (isPaused) {
+                triggerSideCannons(); // Trigger celebration on resuming!
               }
               toggle();
             }}
-            className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-[10px] text-sm font-semibold border transition-all ${
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-[10px] text-xs font-semibold border transition-all cursor-pointer ${
               isPaused
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                : "bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20"
+                ? "bg-[#004fff] text-white border-[#004fff]/80 shadow-[0_0_20px_rgba(0,79,255,0.45)] hover:bg-[#31afd4] hover:shadow-[0_0_20px_rgba(49,175,212,0.45)]"
+                : "bg-white/[0.04] border-white/[0.09] text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-white/[0.08]"
             }`}
           >
-            {isPaused ? <PlayCircle size={17} /> : <PauseCircle size={17} />}
+            {isPaused ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
             {isPaused ? "Resume Tracking" : "Pause Tracking"}
           </button>
         </div>
@@ -139,12 +155,12 @@ export function MainLayout() {
       <main className="flex-1 overflow-y-auto z-10 relative">
         {!trackerReady && (
           <AlertBanner>
-            Tracking is unavailable — active-win module failed to load. Window detection requires X11 and xdotool.
+            Tracking engine inactive — active-win native module requires X11 and xdotool.
           </AlertBanner>
         )}
         {trackerReady && isWayland && (
           <AlertBanner>
-            Wayland session detected. Active window tracking is unavailable due to Wayland security restrictions; only idle tracking is active.
+            Wayland compositor active. Foreground window title detection is restricted by compositor security; idle tracking remains operational.
           </AlertBanner>
         )}
         <Outlet />
