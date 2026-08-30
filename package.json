@@ -1,6 +1,6 @@
 {
   "name": "procwatch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A fully offline desktop app for Linux that tracks application usage and productivity",
   "author": {
     "name": "Ishtiaq Khan",
@@ -59,10 +59,6 @@
         {
           "target": "deb",
           "arch": ["x64"]
-        },
-        {
-          "target": "snap",
-          "arch": ["x64"]
         }
       ],
       "category": "Utility",
@@ -75,25 +71,6 @@
         "xdotool",
         "wmctrl",
         "x11-utils"
-      ]
-    },
-    "snap": {
-      "summary": "Offline Linux application time and productivity tracker",
-      "confinement": "classic",
-      "grade": "stable",
-      "plugs": [
-        "desktop",
-        "desktop-legacy",
-        "home",
-        "x11",
-        "wayland",
-        "unity7",
-        "browser-support",
-        "network",
-        "gsettings",
-        "audio-playback",
-        "pulseaudio",
-        "opengl"
       ]
     },
     "asar": true

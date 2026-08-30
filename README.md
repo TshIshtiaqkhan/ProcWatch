@@ -2,9 +2,9 @@
 
 A fully offline desktop app for Linux (X11) that tracks how much time you spend in each application, stores everything locally, and presents it through a visual dashboard. Built with Electron and React.
 
-- **Version:** 1.0
+- **Version:** 1.1
 - **Platform target:** Linux (X11), Desktop, Fully Offline
-- **Status:** Draft
+- **Status:** Stable
 
 ---
 
@@ -12,12 +12,15 @@ A fully offline desktop app for Linux (X11) that tracks how much time you spend 
 
 You do **not** need Node.js or development tools to use ProcWatch. Choose one of the options below:
 
-### Option 1: Snap Store (Ubuntu, Debian, Fedora, Arch)
-Install with a single command from the Snap Store:
+### Option 1: Cloudsmith APT Repository (Recommended for Debian / Ubuntu / Pop!_OS / Linux Mint)
+Configure the Cloudsmith Debian repository for streamlined package management and automatic updates:
 ```bash
-sudo snap install procwatch
+# 1. Add Cloudsmith repository key and source list
+curl -1sLf 'https://dl.cloudsmith.io/public/ishtiaq-khan/procwatch/setup.deb.sh' | sudo -E bash
+
+# 2. Install ProcWatch
+sudo apt update && sudo apt install -y procwatch
 ```
-*(Or search **ProcWatch** in the Ubuntu App Center / Software Store and click Install)*
 
 ---
 
@@ -30,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.
 ---
 
 ### Option 3: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
-1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
+1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
 2. Install via `apt` (which automatically installs required X11 window inspection tools):
    ```bash
    sudo apt install ./procwatch_amd64.deb
@@ -40,7 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.
 ---
 
 ### Option 4: Universal Linux (`.AppImage`)
-1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest).
+1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
 2. Make it executable and run:
    ```bash
    chmod +x ProcWatch-*.AppImage
@@ -490,6 +493,24 @@ on each poll tick:
 - App name: `ProcWatch`
 - `.desktop` file with correct `Categories=Utility;` for Linux app menu integration
 - Icon set: 16/32/48/64/128/256/512/1024px PNG
+
+### 9.4 CI/CD & Cloudsmith Automated Deployment
+Automated multi-target release builds are orchestrated via GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) on every tag push (`v*`):
+
+1. **Build Matrix**: Bundles frontend assets (Vite), compiles native C++ modules (`better-sqlite3`, `ref-napi`) against target Electron ABI, and packages Linux `.AppImage` and `.deb` binaries.
+2. **Cloudsmith Artifact Deployment**:
+   - **Native Debian Package (`.deb`)**: Published directly to Cloudsmith APT repository via `cloudsmith push deb` for native `apt-get` installation and update management.
+   - **Universal AppImage (`.AppImage`)**: Pushed to Cloudsmith raw storage with version tagging and release summaries.
+3. **GitHub Releases**: Automatically publishes drafts, attaches all built assets, and generates changelogs.
+
+#### Required GitHub Secrets & Variables
+
+| Variable / Secret | Type | Description |
+|---|---|---|
+| `CLOUDSMITH_API_KEY` | Secret | Cloudsmith API Token with package write permissions |
+| `CLOUDSMITH_OWNER` | Variable | Cloudsmith workspace/owner slug (e.g. `ishtiaq-khan`) |
+| `CLOUDSMITH_REPO` | Variable | Cloudsmith repository slug (e.g. `procwatch`) |
+| `GITHUB_TOKEN` | Secret | Automatically provided by GitHub Actions for release creation |
 
 ---
 

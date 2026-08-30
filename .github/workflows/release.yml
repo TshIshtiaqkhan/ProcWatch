@@ -4,10 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+      - '[0-9]*'
   workflow_dispatch:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build-linux:
@@ -41,16 +43,8 @@ jobs:
       - name: Build frontend production bundle
         run: cd frontend && npm run build
 
-      - name: Install Snapcraft
-        run: sudo snap install snapcraft --classic
-
       - name: Package AppImage and deb
         run: npx electron-builder --linux AppImage deb --publish never
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package Snap
-        run: npx electron-builder --linux snap --publish never
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,21 +55,40 @@ jobs:
           files: |
             release/*.AppImage
             release/*.deb
-            release/*.snap
           draft: false
           prerelease: false
           generate_release_notes: true
 
-      - name: Find snap file
-        id: find_snap
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "snap_path=$(find release -name '*.snap' | head -1)" >> $GITHUB_OUTPUT
+      # ── Cloudsmith Publishing ──────────────────────────────────────────
 
-      - name: Publish to Snap Store
-        uses: canonical/action-publish@v1
+      - name: Setup Cloudsmith CLI
         if: startsWith(github.ref, 'refs/tags/')
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+        uses: cloudsmith-io/cloudsmith-cli-action@v3
         with:
-          snap: ${{ steps.find_snap.outputs.snap_path }}
-          release: stable
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+
+      - name: Extract version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        id: version
+        run: |
+          RAW_TAG="${GITHUB_REF#refs/tags/}"
+          echo "VERSION=${RAW_TAG#v}" >> $GITHUB_OUTPUT
+
+      - name: Publish .deb to Cloudsmith
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          DEB_FILE=$(find release -name '*.deb' | head -1)
+          if [ -n "$DEB_FILE" ]; then
+            cloudsmith push deb ${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }}/any-distro/any-version "$DEB_FILE"
+          fi
+
+      - name: Publish AppImage to Cloudsmith
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          APPIMAGE_FILE=$(find release -name '*.AppImage' | head -1)
+          if [ -n "$APPIMAGE_FILE" ]; then
+            cloudsmith push raw ${{ vars.CLOUDSMITH_OWNER }}/${{ vars.CLOUDSMITH_REPO }} "$APPIMAGE_FILE" \
+              --name "procwatch" \
+              --version "${{ steps.version.outputs.VERSION }}" \
+              --summary "ProcWatch AppImage for Linux x64"
+          fi
