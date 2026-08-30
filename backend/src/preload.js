@@ -20,7 +20,9 @@ const electronAPI = {
 
   // Data
   exportData: (format) => ipcRenderer.invoke("data:export", { format }),
-  clearAllData: () => ipcRenderer.invoke("data:clearAll"),
+  // confirmationToken must equal "DELETE" — validated on the backend too.
+  clearAllData: (confirmationToken) =>
+    ipcRenderer.invoke("data:clearAll", { confirmationToken }),
 
   // Categories
   listCategories: () => ipcRenderer.invoke("categories:list"),

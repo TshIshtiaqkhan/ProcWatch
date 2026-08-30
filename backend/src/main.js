@@ -155,7 +155,7 @@ async function getTodaySummary() {
     const result = await pool.query(
       `SELECT app_name, SUM(duration_seconds) as seconds
        FROM sessions
-       WHERE date(start_time, 'localtime') = $1 AND is_idle = 0
+       WHERE date_local = $1 AND is_idle = 0
        GROUP BY app_name
        ORDER BY seconds DESC
        LIMIT 3`,
@@ -173,20 +173,30 @@ async function getTodaySummary() {
   }
 }
 
+let _trayUpdateTimer = null;
+
 function updateTrayMenu() {
   if (!tray) return;
 
-  const isPaused = getIsPaused();
-  tray.setToolTip(isPaused ? "ProcWatch (Paused)" : "ProcWatch");
+  // Debounce: coalesce rapid calls (e.g. pause then immediately resume)
+  // into a single DB query + menu rebuild.
+  if (_trayUpdateTimer) clearTimeout(_trayUpdateTimer);
+  _trayUpdateTimer = setTimeout(() => {
+    _trayUpdateTimer = null;
+    if (!tray) return;
 
-  getTodaySummary()
-    .then((summaryItems) => {
-      if (!tray) return;
-      tray.setContextMenu(buildTrayContextMenu(summaryItems, isPaused));
-    })
-    .catch((err) => {
-      logger.error("Failed to update tray summary:", err);
-    });
+    const isPaused = getIsPaused();
+    tray.setToolTip(isPaused ? "ProcWatch (Paused)" : "ProcWatch");
+
+    getTodaySummary()
+      .then((summaryItems) => {
+        if (!tray) return;
+        tray.setContextMenu(buildTrayContextMenu(summaryItems, isPaused));
+      })
+      .catch((err) => {
+        logger.error("Failed to update tray summary:", err);
+      });
+  }, 300);
 }
 
 // ─── Window ──────────────────────────────────────────────────────────────────

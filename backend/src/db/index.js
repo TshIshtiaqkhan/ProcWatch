@@ -8,47 +8,202 @@ const { DEFAULT_SETTINGS, DEFAULT_CATEGORIES } = require("../configs");
 
 let dbConnection = null;
 
-// Mock PG-style pool query interface for compatibility
+// ─── Statement Cache ──────────────────────────────────────────────────────────
+//
+// better-sqlite3's biggest perf advantage is compiled prepared statements.
+// The original code called dbConnection.prepare(sql) on every query call,
+// which threw away that advantage entirely. We now compile each unique SQL
+// string once and reuse the compiled statement on subsequent calls.
+
+const stmtCache = new Map();
+
+function getStmt(sql) {
+  if (!stmtCache.has(sql)) {
+    stmtCache.set(sql, dbConnection.prepare(sql));
+  }
+  return stmtCache.get(sql);
+}
+
+// Call after schema migrations or when dbConnection is replaced so stale
+// statements (which reference the old connection) are not reused.
+function clearStmtCache() {
+  stmtCache.clear();
+}
+
+// ─── Postgres → SQLite Parameter Adapter ─────────────────────────────────────
+//
+// Converts $1/$2/... positional params to SQLite's ? style and builds the
+// corresponding positional param array. Extracted into a helper so both
+// pool.query and pool.iterate share the same conversion logic.
+
+function convertParams(sql, params = []) {
+  const newParams = [];
+  const sqliteSql = sql.replace(/\$(\d+)/g, (_, n) => {
+    newParams.push(params[parseInt(n, 10) - 1]);
+    return "?";
+  });
+  return { sqliteSql, newParams };
+}
+
+// ─── Pool (PG-compatible interface over better-sqlite3) ───────────────────────
+
 const pool = {
+  /**
+   * Execute a SQL statement, returning a PG-style result object.
+   * All SELECT-like statements return { rows }.
+   * All mutating statements return { rows: [], rowCount, lastInsertRowid }.
+   */
   query: async (sql, params = []) => {
-    if (!dbConnection) {
-      throw new Error("Database not initialized");
-    }
+    if (!dbConnection) throw new Error("Database not initialized");
 
-    const newParams = [];
-    // Replace Postgres style $1, $2 with ? placeholders and map params
-    const sqliteSql = sql.replace(/\$(\d+)/g, (match, number) => {
-      const index = parseInt(number, 10) - 1;
-      newParams.push(params[index]);
-      return "?";
-    });
-
+    const { sqliteSql, newParams } = convertParams(sql, params);
     const trimmed = sqliteSql.trim().toUpperCase();
-    const isSelect = trimmed.startsWith("SELECT") || sqliteSql.includes("RETURNING");
+    const isSelect = trimmed.startsWith("SELECT") || sql.includes("RETURNING");
 
     try {
-      const stmt = dbConnection.prepare(sqliteSql);
+      const stmt = getStmt(sqliteSql);
       if (isSelect) {
-        const rows = stmt.all(...newParams);
-        return { rows };
+        return { rows: stmt.all(...newParams) };
       } else {
         const info = stmt.run(...newParams);
-        return {
-          rows: [],
-          rowCount: info.changes,
-          lastInsertRowid: info.lastInsertRowid,
-        };
+        return { rows: [], rowCount: info.changes, lastInsertRowid: info.lastInsertRowid };
       }
     } catch (err) {
-      logger.error(`SQLite query error on statement [${sqliteSql}] with params [${newParams}] (original: [${params}]):`, err.message, err.stack);
+      logger.error(
+        `SQLite query error on [${sqliteSql}] params [${newParams}]:`,
+        err.message,
+        err.stack
+      );
       throw err;
     }
-  }
+  },
+
+  /**
+   * Returns a synchronous better-sqlite3 iterator for the given query.
+   * Use this for large result sets (e.g., data export) to avoid loading
+   * everything into memory at once.
+   */
+  iterate: (sql, params = []) => {
+    if (!dbConnection) throw new Error("Database not initialized");
+    const { sqliteSql, newParams } = convertParams(sql, params);
+    return getStmt(sqliteSql).iterate(...newParams);
+  },
 };
 
 function getPool() {
   return pool;
 }
+
+// ─── Migration Runner ─────────────────────────────────────────────────────────
+
+function resolveMigrationPath(filename) {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, filename)
+    : path.join(__dirname, filename);
+}
+
+/** Re-read schema version fresh from DB — avoids the stale-variable bug. */
+function getSchemaVersion() {
+  return (
+    dbConnection.prepare("SELECT version FROM schema_version").get()?.version ?? 0
+  );
+}
+
+/**
+ * Read a SQL file, run it in a transaction with an optional seed function,
+ * then clear the statement cache so stale compiled statements are not reused
+ * against the new schema.
+ */
+function runMigrationFile(filename, seedFn) {
+  const migrationPath = resolveMigrationPath(filename);
+  logger.info(`Applying migration file: ${migrationPath}`);
+  const sql = fs.readFileSync(migrationPath, "utf8");
+  dbConnection.transaction(() => {
+    dbConnection.exec(sql);
+    if (seedFn) seedFn();
+  })();
+  clearStmtCache(); // schema changed — discard stale compiled statements
+}
+
+/**
+ * Sequential migration runner.
+ *
+ * IMPORTANT: getSchemaVersion() is called fresh inside each `if` block so the
+ * version read is always up-to-date. The original code read version once into a
+ * local variable and reused it, meaning a brand-new install would attempt every
+ * migration regardless of whether the previous one had already bumped the version.
+ */
+function applyMigrations() {
+  // Ensure the version table exists before we query it
+  dbConnection.exec(`
+    CREATE TABLE IF NOT EXISTS schema_version (
+      version INTEGER PRIMARY KEY
+    )
+  `);
+
+  // ─── v1: Initial schema (sessions, app_categories, settings) ──────────────
+  if (getSchemaVersion() < 1) {
+    runMigrationFile("migrations.sql", () => {
+      const insertSetting = dbConnection.prepare(
+        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
+      );
+      for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+        insertSetting.run(key, value);
+      }
+
+      const insertCategory = dbConnection.prepare(
+        "INSERT OR IGNORE INTO app_categories (app_name, category) VALUES (?, ?)"
+      );
+      for (const [appName, category] of Object.entries(DEFAULT_CATEGORIES)) {
+        insertCategory.run(appName, category);
+      }
+
+      dbConnection
+        .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (1)")
+        .run();
+    });
+    logger.info("Migration v1 complete.");
+  }
+
+  // ─── v2: Focus session support ────────────────────────────────────────────
+  if (getSchemaVersion() < 2) {
+    // Guard against partial states: if the column already exists (e.g. the
+    // app was previously migrated manually), skip the ALTER TABLE but still
+    // bump the version.
+    const existingCols = dbConnection.pragma("table_info(app_categories)");
+    if (existingCols.some((c) => c.name === "is_distracting")) {
+      dbConnection
+        .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (2)")
+        .run();
+    } else {
+      runMigrationFile("migration_v2.sql", () => {
+        dbConnection
+          .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (2)")
+          .run();
+      });
+    }
+    logger.info("Migration v2 complete.");
+  }
+
+  // ─── v3: date_local generated column + compound index ─────────────────────
+  if (getSchemaVersion() < 3) {
+    const existingCols = dbConnection.pragma("table_info(sessions)");
+    if (existingCols.some((c) => c.name === "date_local")) {
+      dbConnection
+        .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (3)")
+        .run();
+    } else {
+      runMigrationFile("migration_v3.sql", () => {
+        dbConnection
+          .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (3)")
+          .run();
+      });
+    }
+    logger.info("Migration v3 complete.");
+  }
+}
+
+// ─── Database Initialisation ──────────────────────────────────────────────────
 
 async function initDatabase() {
   const dbDir = getAppConfigDir();
@@ -60,161 +215,84 @@ async function initDatabase() {
   try {
     dbConnection = new Database(dbPath);
 
-    // Run integrity check
     const check = dbConnection.prepare("PRAGMA integrity_check").get();
     if (!check || check.integrity_check !== "ok") {
-      logger.error("Database integrity check failed. Database file is corrupted.");
+      logger.error("Database integrity check failed — file is corrupted.");
       throw new Error("Corrupted database");
     }
 
     dbConnection.pragma("journal_mode = WAL");
   } catch (err) {
-    logger.error("Failed to open SQLite database file, attempting recovery:", err.message);
+    logger.error("Failed to open database, attempting recovery:", err.message);
     if (dbConnection) {
       try { dbConnection.close(); } catch {}
       dbConnection = null;
     }
 
-    // Try to move corrupted database file to backup and recreate
     try {
       const backupPath = `${dbPath}.corrupted-${Date.now()}`;
       if (fs.existsSync(dbPath)) {
         fs.renameSync(dbPath, backupPath);
-        logger.info(`Corrupted database file backed up to: ${backupPath}`);
+        logger.info(`Corrupted DB backed up to: ${backupPath}`);
       }
-
-      // Re-initialize a fresh DB
       dbConnection = new Database(dbPath);
       dbConnection.pragma("journal_mode = WAL");
     } catch (recreateErr) {
-      logger.error("Critical: Failed to recreate fresh database file:", recreateErr.message, recreateErr.stack);
+      logger.error(
+        "Critical: Failed to recreate fresh database:",
+        recreateErr.message,
+        recreateErr.stack
+      );
       throw recreateErr;
     }
   }
 
-  // Ensure schema_version table exists
-  dbConnection.exec(`
-    CREATE TABLE IF NOT EXISTS schema_version (
-      version INTEGER PRIMARY KEY
-    )
-  `);
+  // Clear any stale cache from a previous init (recovery path creates a new
+  // connection, so old compiled statements are invalid).
+  clearStmtCache();
 
-  // Check current version
-  const row = dbConnection.prepare("SELECT version FROM schema_version").get();
-  const version = row?.version ?? 0;
-
-  if (version < 1) {
-    const migrationPath = app.isPackaged
-      ? path.join(process.resourcesPath, "migrations.sql")
-      : path.join(__dirname, "migrations.sql");
-
-    logger.info(`Running migration from: ${migrationPath}`);
-    const migrationSql = fs.readFileSync(migrationPath, "utf8");
-
-    // Execute migration in transaction
-    dbConnection.transaction(() => {
-      dbConnection.exec(migrationSql);
-
-      // Seed settings
-      const insertSetting = dbConnection.prepare(
-        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
-      );
-      for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-        insertSetting.run(key, value);
-      }
-
-      // Seed categories
-      const insertCategory = dbConnection.prepare(
-        "INSERT OR IGNORE INTO app_categories (app_name, category) VALUES (?, ?)"
-      );
-      for (const [appName, category] of Object.entries(DEFAULT_CATEGORIES)) {
-        insertCategory.run(appName, category);
-      }
-
-      // Update schema version
-      dbConnection.prepare(
-        "INSERT OR REPLACE INTO schema_version (version) VALUES (1)"
-      ).run();
-    })();
-  }
-
-  if (version < 2) {
-    logger.info("Running migration v2: focus session support");
-    dbConnection.transaction(() => {
-      // Safely check if is_distracting column already exists
-      const columns = dbConnection.pragma("table_info(app_categories)");
-      const hasIsDistracting = columns.some((col) => col.name === "is_distracting");
-      if (!hasIsDistracting) {
-        dbConnection.exec(
-          "ALTER TABLE app_categories ADD COLUMN is_distracting INTEGER NOT NULL DEFAULT 0;"
-        );
-      }
-
-      dbConnection.exec(`
-        CREATE TABLE IF NOT EXISTS focus_sessions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          start_time TEXT NOT NULL,
-          end_time TEXT,
-          duration_minutes INTEGER NOT NULL,
-          completed INTEGER NOT NULL DEFAULT 0,
-          distractions INTEGER NOT NULL DEFAULT 0
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_focus_sessions_start_time ON focus_sessions(start_time);
-      `);
-
-      const insertSetting = dbConnection.prepare(
-        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)"
-      );
-      insertSetting.run("focus_session_duration_minutes", "25");
-      insertSetting.run("focus_session_break_minutes", "5");
-      insertSetting.run("focus_session_block_mode", "overlay");
-
-      dbConnection.prepare(
-        "INSERT OR REPLACE INTO schema_version (version) VALUES (2)"
-      ).run();
-    })();
-  }
+  applyMigrations();
 
   return pool;
 }
 
-async function getSetting(key) {
-  const row = dbConnection.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+// ─── Settings Helpers ─────────────────────────────────────────────────────────
+
+function getSetting(key) {
+  const row = getStmt("SELECT value FROM settings WHERE key = ?").get(key);
   return row?.value ?? DEFAULT_SETTINGS[key];
 }
 
-async function setSetting(key, value) {
-  dbConnection.prepare(
+function setSetting(key, value) {
+  getStmt(
     "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value"
   ).run(key, value);
 }
 
 async function purgeOldSessions() {
-  const retentionDays = await getSetting("data_retention_days");
+  const retentionDays = getSetting("data_retention_days");
   if (retentionDays === "never") return;
 
   const days = parseInt(retentionDays, 10);
   if (isNaN(days) || days <= 0) return;
 
-  dbConnection.prepare(
+  getStmt(
     "DELETE FROM sessions WHERE datetime(start_time) < datetime('now', '-' || ? || ' days')"
   ).run(days);
 }
 
 async function closeDatabase() {
   if (dbConnection) {
+    clearStmtCache();
     dbConnection.close();
     dbConnection = null;
   }
 }
 
 function getAllSettings() {
-  const rows = dbConnection.prepare("SELECT key, value FROM settings").all();
+  const rows = getStmt("SELECT key, value FROM settings").all();
   const settings = {};
-  for (const row of rows) {
-    settings[row.key] = row.value;
-  }
+  for (const row of rows) settings[row.key] = row.value;
   return settings;
 }
 

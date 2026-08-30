@@ -38,6 +38,14 @@
         "to": "migrations.sql"
       },
       {
+        "from": "backend/src/db/migration_v2.sql",
+        "to": "migration_v2.sql"
+      },
+      {
+        "from": "backend/src/db/migration_v3.sql",
+        "to": "migration_v3.sql"
+      },
+      {
         "from": "frontend/assets/icon",
         "to": "assets/icon"
       }

@@ -106,7 +106,8 @@ export function Settings() {
 
   const handleClear = async () => {
     if (clearConfirm.trim() !== "DELETE" || !window.electronAPI) return;
-    await window.electronAPI.clearAllData();
+    // Pass the typed token to the backend for server-side validation too
+    await window.electronAPI.clearAllData(clearConfirm.trim());
     setClearConfirm("");
     alert("All tracking data has been permanently cleared.");
   };

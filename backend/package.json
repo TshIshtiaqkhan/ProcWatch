@@ -8,13 +8,21 @@
   },
   "scripts": {
     "start": "electron .",
-    "dev": "electron ."
+    "dev": "electron .",
+    "test": "jest --testPathPattern=__tests__"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "modulePathIgnorePatterns": [
+      "node_modules"
+    ]
   },
   "dependencies": {
     "active-win": "^7.0.0",
     "better-sqlite3": "^12.11.1"
   },
   "devDependencies": {
-    "electron": "^33.4.11"
+    "electron": "^33.4.11",
+    "jest": "^29.7.0"
   }
 }

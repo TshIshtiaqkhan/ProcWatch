@@ -7,6 +7,43 @@ let pollTimer = null;
 let isPaused = false;
 let activeWinFn = null;
 
+// Minimum duration a session must reach before it is written to the database.
+// This prevents a write storm from rapid window switching and eliminates
+// zero-duration orphan rows that accumulate on crash.
+const MIN_SESSION_SECONDS = 3;
+
+// ─── Settings Cache ───────────────────────────────────────────────────────────
+//
+// Reading idle_threshold_seconds from SQLite on every poll tick (default: every
+// 5 s = 720 reads/hour) is wasteful for a value that almost never changes.
+// Cache the values in memory and expose invalidateSettingsCache() so callers
+// (e.g. updateSettings controller) can bust the cache when the user saves new
+// preferences.
+
+let _cachedIdleThreshold = null;
+let _cachedIntervalMs = null;
+
+function invalidateSettingsCache() {
+  _cachedIdleThreshold = null;
+  _cachedIntervalMs = null;
+}
+
+function getIdleThreshold() {
+  if (_cachedIdleThreshold === null) {
+    _cachedIdleThreshold = parseInt(getSetting("idle_threshold_seconds"), 10) || 90;
+  }
+  return _cachedIdleThreshold;
+}
+
+function getIntervalMs() {
+  if (_cachedIntervalMs === null) {
+    _cachedIntervalMs = (parseInt(getSetting("polling_interval_seconds"), 10) || 5) * 1000;
+  }
+  return _cachedIntervalMs;
+}
+
+// ─── Getters / Setters ────────────────────────────────────────────────────────
+
 function setActiveWinFn(fn) {
   activeWinFn = fn;
 }
@@ -27,100 +64,123 @@ function getCurrentSession() {
   return currentSession;
 }
 
-// ─── Session Merge Logic ─────────────────────────────────────────────────────
+// ─── Session Lifecycle ────────────────────────────────────────────────────────
+//
+// Sessions are held in memory on openSession() and only written to the database
+// once their duration exceeds MIN_SESSION_SECONDS (via updateSessionEnd) or when
+// they close with a duration >= MIN_SESSION_SECONDS (via closeSession).
+// Short-lived sessions (e.g. rapid Alt-Tab) are silently discarded.
+
+function openSession(appName, windowTitle, startTime, isIdle) {
+  // Synchronous — just set the in-memory record. No DB write yet.
+  currentSession = {
+    id: null, // null = not yet persisted
+    app_name: appName,
+    window_title: windowTitle,
+    start_time: startTime,
+    is_idle: isIdle,
+    duration_seconds: 0,
+  };
+}
+
+async function _persistSession() {
+  if (!currentSession || currentSession.id) return;
+  const pool = getPool();
+  const result = await pool.query(
+    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $3, 0, $4) RETURNING id",
+    [currentSession.app_name, currentSession.window_title, currentSession.start_time, currentSession.is_idle]
+  );
+  currentSession.id = result.rows[0]?.id;
+}
 
 async function closeSession(endTime) {
   if (!currentSession) return;
 
-  const pool = getPool();
-  const start = new Date(currentSession.start_time).getTime();
-  const end = new Date(endTime).getTime();
-  const duration = Math.round((end - start) / 1000);
+  const duration = Math.round(
+    (new Date(endTime).getTime() - new Date(currentSession.start_time).getTime()) / 1000
+  );
 
+  if (duration < MIN_SESSION_SECONDS) {
+    // Too short — discard without touching the database
+    currentSession = null;
+    return;
+  }
+
+  const pool = getPool();
   if (currentSession.id) {
+    // Already persisted — just close it
     await pool.query(
       "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
       [endTime, duration, currentSession.id]
     );
   } else {
-    const result = await pool.query(
-      "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-      [
-        currentSession.app_name,
-        currentSession.window_title,
-        currentSession.start_time,
-        endTime,
-        duration,
-        currentSession.is_idle,
-      ]
+    // Was never persisted (threshold just crossed at close time) — insert full record
+    await pool.query(
+      "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $4, $5, $6)",
+      [currentSession.app_name, currentSession.window_title, currentSession.start_time, endTime, duration, currentSession.is_idle]
     );
-    currentSession.id = result.rows[0]?.id;
   }
 
   currentSession = null;
 }
 
-async function openSession(appName, windowTitle, startTime, isIdle) {
-  const pool = getPool();
-  const result = await pool.query(
-    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle) VALUES ($1, $2, $3, $3, 0, $4) RETURNING id",
-    [appName, windowTitle, startTime, isIdle]
-  );
-
-  currentSession = {
-    id: result.rows[0]?.id,
-    app_name: appName,
-    window_title: windowTitle,
-    start_time: startTime,
-    end_time: startTime,
-    duration_seconds: 0,
-    is_idle: isIdle,
-  };
-}
-
 async function updateSessionEnd(endTime) {
-  if (!currentSession || !currentSession.id) return;
-  const pool = getPool();
-  const start = new Date(currentSession.start_time).getTime();
-  const end = new Date(endTime).getTime();
-  const duration = Math.round((end - start) / 1000);
-  await pool.query(
-    "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
-    [endTime, duration, currentSession.id]
+  if (!currentSession) return;
+
+  const duration = Math.round(
+    (new Date(endTime).getTime() - new Date(currentSession.start_time).getTime()) / 1000
   );
-  currentSession.end_time = endTime;
-  currentSession.duration_seconds = duration;
+
+  // First time the session crosses the threshold — persist it
+  if (!currentSession.id && duration >= MIN_SESSION_SECONDS) {
+    await _persistSession();
+  }
+
+  // Update the live end_time (crash-recovery: DB always has a recent end_time)
+  if (currentSession.id) {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE sessions SET end_time = $1, duration_seconds = $2 WHERE id = $3",
+      [endTime, duration, currentSession.id]
+    );
+    currentSession.end_time = endTime;
+    currentSession.duration_seconds = duration;
+  }
 }
 
-// ─── Poll Loop ───────────────────────────────────────────────────────────────
+// ─── Poll Loop ────────────────────────────────────────────────────────────────
+//
+// Uses recursive setTimeout instead of setInterval so that a slow poll
+// (e.g. active-win hanging, temporary DB contention) does not cause the next
+// tick to fire before the current one finishes, which would stack concurrent
+// executions indefinitely on slow hardware.
 
 async function pollActiveWindow() {
   if (isPaused) return;
 
   const now = new Date().toISOString();
   const idleSeconds = powerMonitor.getSystemIdleTime();
-  const idleThreshold = parseInt(await getSetting("idle_threshold_seconds"), 10);
+  const idleThreshold = getIdleThreshold(); // cached — no DB hit unless invalidated
 
   try {
     if (idleSeconds >= idleThreshold) {
-      // User is idle
+      // ── User is idle ──
       if (!currentSession || currentSession.is_idle === 0) {
         await closeSession(now);
-        await openSession("Idle", null, now, 1);
+        openSession("Idle", null, now, 1);
       } else {
-        // Still idle — update end_time so crash doesn't lose duration
         await updateSessionEnd(now);
       }
       return;
     }
 
-    // User is active — get active window
+    // ── User is active — detect foreground window ──
     let activeWindow = null;
     if (activeWinFn) {
       try {
         activeWindow = await activeWinFn();
       } catch {
-        // active-win threw (no window focused, X11 error, etc.) — skip this poll
+        // active-win threw (no window focused, X11 error, etc.) — skip this tick
         return;
       }
     }
@@ -129,7 +189,7 @@ async function pollActiveWindow() {
       // No focused window — treat as idle
       if (!currentSession || currentSession.is_idle === 0) {
         await closeSession(now);
-        await openSession("Idle", null, now, 1);
+        openSession("Idle", null, now, 1);
       } else {
         await updateSessionEnd(now);
       }
@@ -146,33 +206,41 @@ async function pollActiveWindow() {
       currentSession.window_title !== windowTitle
     ) {
       await closeSession(now);
-      await openSession(appName, windowTitle, now, 0);
+      openSession(appName, windowTitle, now, 0);
     } else {
-      // Same app+title as before — update end_time to prevent data loss on crash
+      // Same app+title — keep updating end_time so a crash loses at most one interval
       await updateSessionEnd(now);
     }
   } catch (err) {
-    // Never crash the tracker loop
+    // Never let an error crash the tracker loop
     logger.error("Poll error:", err);
   }
 }
 
-// ─── Start / Stop ────────────────────────────────────────────────────────────
+// ─── Start / Stop ─────────────────────────────────────────────────────────────
 
 async function startTracking() {
-  if (pollTimer) return;
+  if (pollTimer !== null) return;
 
-  const intervalSeconds = parseInt(await getSetting("polling_interval_seconds"), 10) || 5;
-  const interval = intervalSeconds * 1000;
+  // Bust the settings cache so startTracking always picks up current DB values
+  invalidateSettingsCache();
+  // Prime the interval cache now (avoids an extra DB read in the first tick)
+  const intervalMs = getIntervalMs();
 
-  pollTimer = setInterval(() => {
-    pollActiveWindow().catch((err) => logger.error("Poll error:", err));
-  }, interval);
+  const tick = async () => {
+    await pollActiveWindow().catch((err) => logger.error("Poll error:", err));
+    // Only schedule the next tick if tracking is still active
+    if (pollTimer !== null) {
+      pollTimer = setTimeout(tick, intervalMs);
+    }
+  };
+
+  pollTimer = setTimeout(tick, intervalMs);
 }
 
 async function stopTracking() {
   if (pollTimer) {
-    clearInterval(pollTimer);
+    clearTimeout(pollTimer);
     pollTimer = null;
   }
   if (currentSession) {
@@ -180,7 +248,7 @@ async function stopTracking() {
   }
 }
 
-// ─── Power Monitor Integration ───────────────────────────────────────────────
+// ─── Power Monitor Integration ────────────────────────────────────────────────
 
 function setupPowerMonitor() {
   powerMonitor.on("suspend", () => {
@@ -206,8 +274,7 @@ function setupPowerMonitor() {
 
   powerMonitor.on("unlock-screen", () => {
     if (currentSession && currentSession.is_idle === 1) {
-      const now = new Date().toISOString();
-      closeSession(now).catch((err) =>
+      closeSession(new Date().toISOString()).catch((err) =>
         logger.error("Error on unlock-screen:", err)
       );
     }
@@ -223,4 +290,5 @@ module.exports = {
   startTracking,
   stopTracking,
   setupPowerMonitor,
+  invalidateSettingsCache,
 };
