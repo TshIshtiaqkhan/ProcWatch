@@ -1,5 +1,6 @@
 const { ipcMain } = require("electron");
 const controllers = require("../controllers");
+const focusController = require("../controllers/focus.controller");
 
 // Registers all IPC channels, wiring each to its controller handler.
 // `ctx` carries shared app state the handlers need (main window, cached
@@ -28,6 +29,12 @@ function registerIpcRoutes(ctx) {
   ipcMain.handle("categories:list", (e, p) => controllers.listCategories(e, p, ctx));
   ipcMain.handle("categories:update", (e, p) => controllers.updateCategory(e, p, ctx));
   ipcMain.handle("categories:remove", (e, p) => controllers.removeCategory(e, p, ctx));
+
+  // Focus Mode
+  ipcMain.handle("focus:start", (e, p) => focusController.startFocus(e, p, ctx));
+  ipcMain.handle("focus:stop", (e, p) => focusController.stopFocus(e, p, ctx));
+  ipcMain.handle("focus:status", (e, p) => focusController.focusStatus(e, p, ctx));
+  ipcMain.handle("focus:history", (e, p) => focusController.focusHistory(e, p, ctx));
 
   // System
   ipcMain.handle("system:checkDeps", (e, p) => controllers.checkDeps(e, p, ctx));

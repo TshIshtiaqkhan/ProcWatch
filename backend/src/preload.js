@@ -32,6 +32,24 @@ const electronAPI = {
   removeCategory: (appName) =>
     ipcRenderer.invoke("categories:remove", { appName }),
 
+  // Focus Mode
+  startFocus: (durationMinutes) =>
+    ipcRenderer.invoke("focus:start", { durationMinutes }),
+  stopFocus: () => ipcRenderer.invoke("focus:stop"),
+  getFocusStatus: () => ipcRenderer.invoke("focus:status"),
+  getFocusHistory: (startDate, endDate) =>
+    ipcRenderer.invoke("focus:history", { startDate, endDate }),
+  onFocusDistraction: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.on("focus:distraction", handler);
+    return () => ipcRenderer.removeListener("focus:distraction", handler);
+  },
+  onFocusCompleted: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.on("focus:completed", handler);
+    return () => ipcRenderer.removeListener("focus:completed", handler);
+  },
+
   // System
   checkDeps: () => ipcRenderer.invoke("system:checkDeps"),
   setAutoStart: (enabled) => ipcRenderer.invoke("system:setAutoStart", { enabled }),

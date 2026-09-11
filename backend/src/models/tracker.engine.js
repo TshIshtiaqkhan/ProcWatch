@@ -2,6 +2,7 @@ const { powerMonitor } = require("electron");
 const { getPool, getSetting } = require("../db");
 const { logger } = require("../utils/logger");
 const { formatDateString } = require("../utils/paths");
+const { getActiveFocusSession, checkDistraction } = require("./focus.engine");
 
 let currentSession = null;
 let pollTimer = null;
@@ -201,6 +202,15 @@ async function pollActiveWindow() {
 
     const appName = activeWindow.owner.name;
     const windowTitle = activeWindow.title;
+
+    // ── Focus Mode distraction check ──
+    if (getActiveFocusSession()) {
+      try {
+        await checkDistraction(appName);
+      } catch (err) {
+        logger.error("Focus distraction check error:", err);
+      }
+    }
 
     if (
       !currentSession ||

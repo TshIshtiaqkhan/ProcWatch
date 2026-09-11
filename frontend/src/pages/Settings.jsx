@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download, Target } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useCategories } from "../hooks/useCategories";
 import { AppIcon } from "../components/ui/AppIcon";
@@ -84,9 +84,10 @@ const SwitchToggle = ({ label, description, checked, onChange }) => (
 
 export function Settings() {
   const { settings, update } = useSettings();
-  const { categories, add, remove } = useCategories();
+  const { categories, add, remove, setDistracting } = useCategories();
   const [newAppName, setNewAppName] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  const [newIsDistracting, setNewIsDistracting] = useState(false);
   const [clearConfirm, setClearConfirm] = useState("");
   const [exportFormat, setExportFormat] = useState("json");
   const [exportStatus, setExportStatus] = useState(null);
@@ -98,6 +99,8 @@ export function Settings() {
 
   const pollInterval = Number(settings.polling_interval_seconds ?? 5);
   const idleThreshold = Number(settings.idle_threshold_seconds ?? 90);
+  const focusDuration = Number(settings.focus_session_duration_minutes ?? 25);
+  const focusBreak = Number(settings.focus_session_break_minutes ?? 5);
 
   const showNotification = (msg, isError = false) => {
     setBannerNotice({ text: msg, isError });
@@ -196,6 +199,38 @@ export function Settings() {
         </div>
       </GlassCard>
 
+      {/* Focus & Pomodoro Settings */}
+      <GlassCard className="p-6 space-y-4" aria-label="Focus and Pomodoro settings">
+        <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
+          <Target size={16} className="text-[#31afd4]" />
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            Focus &amp; Pomodoro Calibration
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SliderCard
+            label="Default Focus Duration"
+            min={5}
+            max={90}
+            value={focusDuration}
+            unit="m"
+            readoutTag={`${focusDuration} min`}
+            onChange={(v) => update({ focus_session_duration_minutes: String(v) })}
+          />
+
+          <SliderCard
+            label="Short Break Duration"
+            min={1}
+            max={30}
+            value={focusBreak}
+            unit="m"
+            readoutTag={`${focusBreak} min`}
+            onChange={(v) => update({ focus_session_break_minutes: String(v) })}
+          />
+        </div>
+      </GlassCard>
+
       {/* System Behavior & Retention */}
       <GlassCard className="p-6 space-y-4" aria-label="System behavior and retention">
         <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
@@ -268,6 +303,7 @@ export function Settings() {
               <tr className="border-b border-white/[0.06] text-left text-xs font-semibold text-[#a1a1aa]">
                 <th className="px-2 pb-2">Application</th>
                 <th className="px-2 pb-2">Category</th>
+                <th className="px-2 pb-2 text-center">Focus Mode</th>
                 <th className="px-2 pb-2 text-right">Actions</th>
               </tr>
             </thead>
@@ -284,6 +320,20 @@ export function Settings() {
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#004fff]/15 text-[#31afd4] text-xs font-mono border border-[#004fff]/30">
                       {cat.category}
                     </span>
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setDistracting(cat.app_name, !cat.is_distracting)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border cursor-pointer ${
+                        cat.is_distracting
+                          ? "bg-[#ff007f]/15 text-[#ff007f] border-[#ff007f]/40 shadow-[0_0_8px_rgba(255,0,127,0.25)]"
+                          : "bg-white/[0.04] text-[#71717a] border-white/[0.08] hover:text-[#a1a1aa]"
+                      }`}
+                      title={cat.is_distracting ? "Marked as distracting during Focus sessions" : "Click to mark as distracting"}
+                    >
+                      {cat.is_distracting ? "Distracting" : "Allowed"}
+                    </button>
                   </td>
                   <td className="py-2.5 px-2 text-right">
                     <button
@@ -305,13 +355,14 @@ export function Settings() {
         <div className="p-4 bg-[#17171a] border border-[#27272a] rounded-xl space-y-3">
           <p className="text-xs font-semibold text-[#f4f4f5]">Add New Category Rule</p>
           <form
-            className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3"
+            className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-3 items-center"
             onSubmit={async (e) => {
               e.preventDefault();
               if (newAppName.trim() && newCategory.trim()) {
-                await add(newAppName.trim(), newCategory.trim());
+                await add(newAppName.trim(), newCategory.trim(), newIsDistracting);
                 setNewAppName("");
                 setNewCategory("");
+                setNewIsDistracting(false);
               }
             }}
           >
@@ -331,6 +382,15 @@ export function Settings() {
               className="text-xs text-[#f4f4f5] bg-[#1f1f22] border border-[#27272a] rounded-lg px-3 py-2 outline-none focus:border-[#004fff] transition-all"
               required
             />
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-[#a1a1aa] whitespace-nowrap select-none">
+              <input
+                type="checkbox"
+                checked={newIsDistracting}
+                onChange={(e) => setNewIsDistracting(e.target.checked)}
+                className="accent-[#ff007f] rounded cursor-pointer"
+              />
+              <span>Distracting</span>
+            </label>
             <button
               type="submit"
               disabled={!newAppName.trim() || !newCategory.trim()}

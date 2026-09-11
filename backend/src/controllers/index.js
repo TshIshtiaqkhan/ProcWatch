@@ -358,8 +358,19 @@ async function clearAllData(_e, payload, _ctx) {
 async function listCategories(_e, _payload, _ctx) {
   try {
     const pool = getPool();
+    // Return all categories, PLUS any distinct app_name recorded in sessions
     const result = await pool.query(
-      "SELECT app_name, category, is_distracting FROM app_categories ORDER BY app_name"
+      `SELECT
+         COALESCE(c.app_name, s.app_name) as app_name,
+         COALESCE(c.category, 'Uncategorized') as category,
+         COALESCE(c.is_distracting, 0) as is_distracting
+       FROM (
+         SELECT DISTINCT app_name FROM sessions WHERE is_idle = 0
+         UNION
+         SELECT app_name FROM app_categories
+       ) s
+       LEFT JOIN app_categories c ON LOWER(c.app_name) = LOWER(s.app_name)
+       ORDER BY app_name`
     );
     return ok(result.rows);
   } catch (err) {
@@ -378,6 +389,25 @@ async function updateCategory(_e, payload, _ctx) {
       "INSERT INTO app_categories (app_name, category, is_distracting) VALUES ($1, $2, $3) ON CONFLICT (app_name) DO UPDATE SET category = $2, is_distracting = $3",
       [payload.appName, payload.category, isDistracting]
     );
+
+    // Keep common aliases in sync so tracking never misses across desktop environments
+    const lower = payload.appName.toLowerCase();
+    let aliases = [];
+    if (lower === "google-chrome" || lower === "google-chrome-stable" || lower === "chrome") {
+      aliases = ["Google-chrome", "google-chrome", "google-chrome-stable", "chrome"];
+    } else if (lower === "whatsapp" || lower === "whatsapp-linux-app") {
+      aliases = ["whatsapp-linux-app", "whatsapp"];
+    }
+
+    for (const alias of aliases) {
+      if (alias !== payload.appName) {
+        await pool.query(
+          "INSERT INTO app_categories (app_name, category, is_distracting) VALUES ($1, $2, $3) ON CONFLICT (app_name) DO UPDATE SET category = $2, is_distracting = $3",
+          [alias, payload.category, isDistracting]
+        );
+      }
+    }
+
     return ok();
   } catch (err) {
     return fail("UPDATE_ERROR", String(err));

@@ -20,6 +20,7 @@ const {
 } = require("./models");
 const { logger } = require("./utils/logger");
 const { registerIpcRoutes } = require("./routes/ipc.routes");
+const { setMainWindow: setFocusMainWindow } = require("./models/focus.engine");
 
 // Resolve app icon — works in both dev (project root) and packaged (asar) mode
 const appIconPath = resolveAssetPath("assets", "icon", "256x256.png");
@@ -244,6 +245,8 @@ async function createWindow() {
     },
   });
 
+  setFocusMainWindow(mainWindow);
+
   mainWindow.webContents.on("console-message", (event, level, message, line, sourceId) => {
     console.log(`[RENDERER CONSOLE] [level ${level}] ${message} (${sourceId}:${line})`);
   });
@@ -257,11 +260,24 @@ async function createWindow() {
   const isDev = process.env.NODE_ENV === "development";
 
   if (isDev) {
-    mainWindow.loadURL("http://localhost:5173");
+    const devUrl = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
+    const loadDevServer = () => {
+      if (!mainWindow) return;
+      mainWindow.loadURL(devUrl).catch(() => {
+        setTimeout(loadDevServer, 500);
+      });
+    };
+    loadDevServer();
   } else {
     mainWindow.webContents.session.clearCache().catch(() => {});
     const frontendPath = path.join(__dirname, "..", "..", "frontend", "dist", "index.html");
-    mainWindow.loadFile(frontendPath);
+    if (fs.existsSync(frontendPath)) {
+      mainWindow.loadFile(frontendPath);
+    } else {
+      mainWindow.loadURL("http://localhost:5173").catch(() => {
+        logger.error(`Frontend bundle not found at: ${frontendPath}. Please run 'npm run build' first.`);
+      });
+    }
   }
 
   if (!shouldStartMinimized) {
@@ -277,6 +293,7 @@ async function createWindow() {
   });
 
   mainWindow.on("closed", () => {
+    setFocusMainWindow(null);
     mainWindow = null;
   });
 }
