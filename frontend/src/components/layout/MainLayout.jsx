@@ -6,7 +6,8 @@ import {
   Activity,
   PlayCircle,
   PauseCircle,
-  AlertTriangle
+  AlertTriangle,
+  Target,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import logo from "../../../assets/icon/256x256.png";
@@ -58,6 +59,7 @@ const navItems = [
   { to: "/today", label: "Today", icon: Activity },
   { to: "/weekly", label: "Week", icon: BarChart2 },
   { to: "/monthly", label: "Month", icon: Calendar },
+  { to: "/focus", label: "Focus", icon: Target },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -85,13 +87,13 @@ export function MainLayout() {
   const isAppDetailActive = location.pathname.startsWith("/app/");
 
   return (
-    <div className="flex h-screen bg-[#050505] relative overflow-hidden text-[#f4f4f5] selection:bg-[#004fff]/30">
+    <div className="h-screen bg-[#050505] relative overflow-hidden text-[#f4f4f5] selection:bg-[#004fff]/30">
       {/* Global Interactive Canvas Grid Backdrop */}
       <InteractiveGridPattern width={24} height={24} />
 
-      {/* Global Constant Sidebar */}
+      {/* Global Constant Sidebar — fixed to prevent any layout shift */}
       <aside
-        className="w-[220px] flex flex-col z-10 border-r border-[#27272a]/80 shrink-0"
+        className="fixed top-0 left-0 w-[220px] h-screen flex flex-col z-20 border-r border-[#27272a]/80"
         style={{ backgroundColor: "rgba(9, 9, 11, 0.75)", backdropFilter: "blur(16px)" }}
       >
         <div className="p-5 flex items-center gap-3 border-b border-white/[0.04]">
@@ -109,10 +111,10 @@ export function MainLayout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-[9px] text-xs font-semibold tracking-wide transition-all ${
+                `flex items-center gap-2.5 px-3 py-2.5 rounded-[9px] text-xs font-semibold tracking-wide transition-colors border ${
                   isActive
-                    ? "bg-[#004fff] text-white shadow-[0_0_18px_rgba(0,79,255,0.45)] border border-[#004fff]/50"
-                    : "text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-white/[0.045]"
+                    ? "bg-[#004fff] text-white border-[#004fff]/60 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]"
+                    : "border-transparent text-[#a1a1aa] hover:text-[#f4f4f5] hover:bg-white/[0.045]"
                 }`
               }
             >
@@ -155,8 +157,8 @@ export function MainLayout() {
         </div>
       </aside>
 
-      {/* Main App Content View Area */}
-      <main className="flex-1 overflow-y-auto z-10 relative">
+      {/* Main App Content View Area — offset by sidebar width */}
+      <main className="ml-[220px] h-screen overflow-y-auto z-10 relative">
         {!trackerReady && (
           <AlertBanner>
             Tracking engine inactive — active-win native module requires X11 and xdotool.

@@ -106,3 +106,18 @@ input[type="range"].custom-slider::-moz-range-thumb {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Main content scrollbar — always present, blends with background */
+main::-webkit-scrollbar {
+  width: 6px;
+}
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+main::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+main::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

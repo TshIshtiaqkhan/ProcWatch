@@ -7,6 +7,7 @@ import { Monthly } from "./pages/Monthly";
 import { AppDetail } from "./pages/AppDetail";
 import { Settings } from "./pages/Settings";
 import { Onboarding } from "./pages/Onboarding";
+import { Focus } from "./pages/Focus";
 
 export default function App() {
   const [isFirstRun, setIsFirstRun] = useState(false);
@@ -54,12 +55,13 @@ export default function App() {
           <Route
             path="/"
             element={
-              isFirstRun ? <Navigate to="/onboarding" replace /> : <Today />
+              isFirstRun ? <Navigate to="/onboarding" replace /> : <Navigate to="/today" replace />
             }
           />
           <Route path="/today" element={<Today />} />
           <Route path="/weekly" element={<Weekly />} />
           <Route path="/monthly" element={<Monthly />} />
+          <Route path="/focus" element={<Focus />} />
           <Route path="/app/:appName" element={<AppDetail />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
