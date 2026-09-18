@@ -17,7 +17,7 @@ const { DEFAULT_SETTINGS } = require("../configs");
 const { formatDateString } = require("../utils/paths");
 const { logger } = require("../utils/logger");
 const { ok, fail } = require("../utils/response");
-const { isValidDateString, isNonEmptyString } = require("../validators");
+const { isValidDateString, isNonEmptyString, sanitizeLikePattern } = require("../validators");
 
 // ─── Usage Queries ────────────────────────────────────────────────────────────
 
@@ -147,13 +147,15 @@ async function getAppDetail(_e, payload, _ctx) {
     }
 
     const pool = getPool();
-    const appPattern = `%${payload.appName}%`;
+    // Escape special SQL LIKE wildcard characters (%, _, \) to prevent wildcard injection
+    const sanitizedAppName = sanitizeLikePattern(payload.appName);
+    const appPattern = `%${sanitizedAppName}%`;
 
     const [dailyResult, titlesResult] = await Promise.all([
       pool.query(
         `SELECT date_local as date, SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY date_local
@@ -164,7 +166,7 @@ async function getAppDetail(_e, payload, _ctx) {
         `SELECT COALESCE(NULLIF(window_title, ''), app_name) as window_title,
                 SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY COALESCE(NULLIF(window_title, ''), app_name)

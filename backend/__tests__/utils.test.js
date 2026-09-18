@@ -107,3 +107,16 @@ describe("session threshold logic", () => {
     expect(shouldDiscard(start, end)).toBe(false);
   });
 });
+
+// ─── SQL LIKE wildcard escaping logic ─────────────────────────────────────────
+
+const { sanitizeLikePattern } = require("../src/validators");
+
+describe("SQL LIKE wildcard escaping logic", () => {
+  it("escapes %, _, and \\ in app name", () => {
+    expect(sanitizeLikePattern("code%test")).toBe("code\\%test");
+    expect(sanitizeLikePattern("app_name")).toBe("app\\_name");
+    expect(sanitizeLikePattern("back\\slash")).toBe("back\\\\slash");
+    expect(sanitizeLikePattern("normalApp")).toBe("normalApp");
+  });
+});
