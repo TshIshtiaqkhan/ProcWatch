@@ -6,4 +6,9 @@ function isNonEmptyString(str) {
   return typeof str === "string" && str.trim().length > 0;
 }
 
-module.exports = { isValidDateString, isNonEmptyString };
+function sanitizeLikePattern(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/[\%_\\]/g, "\\$&");
+}
+
+module.exports = { isValidDateString, isNonEmptyString, sanitizeLikePattern };
