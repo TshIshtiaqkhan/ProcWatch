@@ -147,13 +147,14 @@ async function getAppDetail(_e, payload, _ctx) {
     }
 
     const pool = getPool();
-    const appPattern = `%${payload.appName}%`;
+    const escapedAppName = payload.appName.replace(/[%_\\]/g, "\\$&");
+    const appPattern = `%${escapedAppName}%`;
 
     const [dailyResult, titlesResult] = await Promise.all([
       pool.query(
         `SELECT date_local as date, SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY date_local
@@ -164,7 +165,7 @@ async function getAppDetail(_e, payload, _ctx) {
         `SELECT COALESCE(NULLIF(window_title, ''), app_name) as window_title,
                 SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY COALESCE(NULLIF(window_title, ''), app_name)
@@ -478,7 +479,7 @@ async function setAutoStart(_e, payload, ctx) {
       const desktopEntry = `[Desktop Entry]
 Type=Application
 Name=ProcWatch
-Exec=${execPath} --no-sandbox
+Exec=${execPath}
 Icon=${iconPath}
 Hidden=false
 NoDisplay=false

@@ -42,34 +42,64 @@ function getLogPath() {
   return path.join(LOG_DIR, `app-${date}.log`);
 }
 
+const MAX_BACKUP_FILES = 3;
+
 function rotateIfNeeded(logPath) {
   try {
     const stat = fs.statSync(logPath);
     if (stat.size >= MAX_LOG_BYTES) {
-      const rotated = logPath.replace(".log", `.1.log`);
-      if (fs.existsSync(rotated)) fs.unlinkSync(rotated);
-      fs.renameSync(logPath, rotated);
+      for (let i = MAX_BACKUP_FILES; i >= 1; i--) {
+        const currentFile = logPath.replace(".log", `.${i}.log`);
+        if (i === MAX_BACKUP_FILES) {
+          if (fs.existsSync(currentFile)) fs.unlinkSync(currentFile);
+        } else {
+          const nextFile = logPath.replace(".log", `.${i + 1}.log`);
+          if (fs.existsSync(currentFile)) {
+            if (fs.existsSync(nextFile)) fs.unlinkSync(nextFile);
+            fs.renameSync(currentFile, nextFile);
+          }
+        }
+      }
+      const firstBackup = logPath.replace(".log", ".1.log");
+      if (fs.existsSync(firstBackup)) fs.unlinkSync(firstBackup);
+      fs.renameSync(logPath, firstBackup);
     }
   } catch {
     // File doesn't exist yet, no rotation needed
   }
 }
 
-function writeLog(level, ...args) {
-  ensureLogDir();
+let writeQueue = [];
+let isWriting = false;
+
+function processQueue() {
+  if (isWriting || writeQueue.length === 0) return;
+  isWriting = true;
+  const chunk = writeQueue.join("");
+  writeQueue = [];
   const logPath = getLogPath();
   rotateIfNeeded(logPath);
+
+  fs.appendFile(logPath, chunk, "utf8", (err) => {
+    isWriting = false;
+    if (err) {
+      console.error(`[LOG FAIL] Failed to write log chunk:`, err);
+    }
+    if (writeQueue.length > 0) {
+      processQueue();
+    }
+  });
+}
+
+function writeLog(level, ...args) {
+  ensureLogDir();
 
   const timestamp = new Date().toISOString();
   const message = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
   const line = `[${timestamp}] [${level}] ${message}\n`;
 
-  try {
-    fs.appendFileSync(logPath, line);
-  } catch {
-    // Can't log if logging fails — fall back to console
-    console.error(`[LOG FAIL] ${line.trimEnd()}`);
-  }
+  writeQueue.push(line);
+  processQueue();
 
   // Also output to console in development
   if (process.env.NODE_ENV === "development") {
