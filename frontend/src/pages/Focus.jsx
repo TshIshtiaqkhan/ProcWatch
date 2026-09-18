@@ -134,12 +134,16 @@ export function Focus() {
     fetchData();
   }, [fetchData]);
 
-  // Refresh data when a session completes or is cancelled
+  // Refresh data when a session completes or returns to idle
+  const prevStateRef = useRef(state);
   useEffect(() => {
-    if (state === "completed" || (state === "idle" && lastResult)) {
-      fetchData();
+    if (prevStateRef.current !== state) {
+      if (state === "completed" || state === "idle") {
+        fetchData();
+      }
+      prevStateRef.current = state;
     }
-  }, [state, lastResult, fetchData]);
+  }, [state, fetchData]);
 
   // ── Confetti on completion ────────────────────────────────────────────────
 
@@ -208,7 +212,7 @@ export function Focus() {
       <GlassCard className="p-8">
         <div className="flex flex-col items-center text-center space-y-6">
           {/* ── IDLE STATE ── */}
-          {state === "idle" && !lastResult && (
+          {state === "idle" && (
             <>
               <div className="flex items-center gap-2.5">
                 <Target size={20} className="text-[#31afd4]" />
@@ -258,17 +262,17 @@ export function Focus() {
           )}
 
           {/* ── COMPLETED STATE ── */}
-          {state === "completed" && lastResult && (
+          {state === "completed" && (
             <>
               <div className="flex items-center gap-2 text-[#34d399]">
                 <CheckCircle2 size={24} />
                 <h2 className="text-xl font-bold text-white">Session Complete!</h2>
               </div>
               <div className="flex items-center gap-6 text-xs text-[#a1a1aa]">
-                <span className="font-mono">{formatDuration(lastResult.durationSeconds)} focused</span>
+                <span className="font-mono">{formatDuration(lastResult?.durationSeconds ?? durationMinutes * 60)} focused</span>
                 <span className="text-[#27272a]">|</span>
-                <span className={`font-mono ${lastResult.distractions > 0 ? "text-[#fb7185]" : "text-[#34d399]"}`}>
-                  {lastResult.distractions} distraction{lastResult.distractions !== 1 ? "s" : ""}
+                <span className={`font-mono ${(lastResult?.distractions ?? distractions) > 0 ? "text-[#fb7185]" : "text-[#34d399]"}`}>
+                  {lastResult?.distractions ?? distractions} distraction{(lastResult?.distractions ?? distractions) !== 1 ? "s" : ""}
                 </span>
               </div>
               <div className="flex items-center gap-3 pt-2">

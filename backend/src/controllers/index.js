@@ -479,7 +479,7 @@ async function setAutoStart(_e, payload, ctx) {
       const desktopEntry = `[Desktop Entry]
 Type=Application
 Name=ProcWatch
-Exec=${execPath}
+Exec=${execPath} --hidden
 Icon=${iconPath}
 Hidden=false
 NoDisplay=false

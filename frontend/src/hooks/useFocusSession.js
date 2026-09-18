@@ -121,10 +121,12 @@ export function useFocusSession() {
     if (!window.electronAPI?.stopFocus) return;
     stopCountdown();
     const res = await window.electronAPI.stopFocus();
-    if (res?.success && res.data) {
-      setLastResult(res.data);
+    if (res?.success) {
+      setLastResult(null);
       setState("idle");
       setSessionId(null);
+      setRemainingSeconds(0);
+      setDistractions(0);
     }
   }, [stopCountdown]);
 

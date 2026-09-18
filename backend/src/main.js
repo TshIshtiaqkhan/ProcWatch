@@ -204,11 +204,12 @@ function updateTrayMenu() {
 
 async function createWindow() {
   const isExplicitlyHidden =
-    process.argv.includes("--hidden") || process.argv.includes("--minimized");
+    process.argv.includes("--hidden") ||
+    process.argv.includes("--minimized") ||
+    process.argv.includes("--autostart");
   const shouldStartMinimized =
-    isExplicitlyHidden &&
-    cachedSettings.start_minimized === "true" &&
-    cachedSettings.first_run_complete === "true";
+    cachedSettings.first_run_complete === "true" &&
+    (isExplicitlyHidden || cachedSettings.start_minimized === "true");
 
   // Build a multi-resolution icon for best Linux/X11 compatibility
   const iconDir = resolveAssetPath("assets", "icon");
