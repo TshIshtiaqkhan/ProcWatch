@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Today } from "./pages/Today";
 import { Weekly } from "./pages/Weekly";
@@ -45,28 +46,30 @@ export default function App() {
   }
 
   return (
-    <HashRouter>
-      <Routes>
-        <Route
-          path="/onboarding"
-          element={<Onboarding onComplete={handleCompleteOnboarding} />}
-        />
-        <Route element={<MainLayout />}>
+    <ErrorBoundary>
+      <HashRouter>
+        <Routes>
           <Route
-            path="/"
-            element={
-              isFirstRun ? <Navigate to="/onboarding" replace /> : <Navigate to="/today" replace />
-            }
+            path="/onboarding"
+            element={<Onboarding onComplete={handleCompleteOnboarding} />}
           />
-          <Route path="/today" element={<Today />} />
-          <Route path="/weekly" element={<Weekly />} />
-          <Route path="/monthly" element={<Monthly />} />
-          <Route path="/focus" element={<Focus />} />
-          <Route path="/app/:appName" element={<AppDetail />} />
-          <Route path="/settings" element={<Settings />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </HashRouter>
+          <Route element={<MainLayout />}>
+            <Route
+              path="/"
+              element={
+                isFirstRun ? <Navigate to="/onboarding" replace /> : <Navigate to="/today" replace />
+              }
+            />
+            <Route path="/today" element={<Today />} />
+            <Route path="/weekly" element={<Weekly />} />
+            <Route path="/monthly" element={<Monthly />} />
+            <Route path="/focus" element={<Focus />} />
+            <Route path="/app/:appName" element={<AppDetail />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </HashRouter>
+    </ErrorBoundary>
   );
 }

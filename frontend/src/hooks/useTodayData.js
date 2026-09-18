@@ -10,7 +10,7 @@ export function useTodayData(refreshMs = 30000) {
   const [error, setError] = useState(null);
   const [currentDate, setCurrentDate] = useState(todayDateString());
 
-  const fetch = useCallback(async () => {
+  const fetchTodayData = useCallback(async () => {
     if (!window.electronAPI) return;
     try {
       const result = await window.electronAPI.getToday();
@@ -32,10 +32,10 @@ export function useTodayData(refreshMs = 30000) {
   }, []);
 
   useEffect(() => {
-    fetch();
-    const id = setInterval(fetch, refreshMs);
+    fetchTodayData();
+    const id = setInterval(fetchTodayData, refreshMs);
     return () => clearInterval(id);
-  }, [fetch, refreshMs]);
+  }, [fetchTodayData, refreshMs]);
 
   // Detect midnight rollover and reload
   useEffect(() => {
@@ -44,12 +44,12 @@ export function useTodayData(refreshMs = 30000) {
       if (now !== currentDate) {
         setCurrentDate(now);
         setLoading(true);
-        fetch();
+        fetchTodayData();
       }
     };
     const id = setInterval(check, 10000);
     return () => clearInterval(id);
-  }, [currentDate, fetch]);
+  }, [currentDate, fetchTodayData]);
 
   const totalActiveSeconds = usage.reduce((sum, u) => sum + u.seconds, 0);
 
@@ -61,6 +61,6 @@ export function useTodayData(refreshMs = 30000) {
     yesterdayIdleSeconds,
     loading,
     error,
-    refetch: fetch,
+    refetch: fetchTodayData,
   };
 }

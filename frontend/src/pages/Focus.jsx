@@ -91,6 +91,7 @@ export function Focus() {
   } = useFocusSession();
 
   const [selectedDuration, setSelectedDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
   const [todayStats, setTodayStats] = useState({ sessions: 0, minutes: 0, distractions: 0 });
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,31 +144,34 @@ export function Focus() {
   // ── Confetti on completion ────────────────────────────────────────────────
 
   useEffect(() => {
-    if (state === "completed") {
-      const end = Date.now() + 2500;
-      const colors = ["#004fff", "#31afd4", "#ff007f", "#34d399", "#22d3ee"];
-      const frame = () => {
-        if (Date.now() > end) return;
-        confetti({
-          particleCount: 3,
-          angle: 60,
-          spread: 55,
-          startVelocity: 60,
-          origin: { x: 0, y: 0.8 },
-          colors,
-        });
-        confetti({
-          particleCount: 3,
-          angle: 120,
-          spread: 55,
-          startVelocity: 60,
-          origin: { x: 1, y: 0.8 },
-          colors,
-        });
-        requestAnimationFrame(frame);
-      };
-      frame();
-    }
+    if (state !== "completed") return;
+    const end = Date.now() + 2500;
+    const colors = ["#004fff", "#31afd4", "#ff007f", "#34d399", "#22d3ee"];
+    let animId;
+    const frame = () => {
+      if (Date.now() > end) return;
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 0, y: 0.8 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        startVelocity: 60,
+        origin: { x: 1, y: 0.8 },
+        colors,
+      });
+      animId = requestAnimationFrame(frame);
+    };
+    animId = requestAnimationFrame(frame);
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
   }, [state]);
 
   // ── Sync selected duration from settings ──────────────────────────────────
@@ -175,10 +179,18 @@ export function Focus() {
   useEffect(() => {
     if (!window.electronAPI?.getSettings) return;
     window.electronAPI.getSettings().then((res) => {
-      if (res?.success && res.data?.focus_session_duration_minutes) {
-        const dur = parseInt(res.data.focus_session_duration_minutes, 10);
-        if (DURATION_OPTIONS.includes(dur)) {
-          setSelectedDuration(dur);
+      if (res?.success && res.data) {
+        if (res.data.focus_session_duration_minutes) {
+          const dur = parseInt(res.data.focus_session_duration_minutes, 10);
+          if (DURATION_OPTIONS.includes(dur)) {
+            setSelectedDuration(dur);
+          }
+        }
+        if (res.data.focus_session_break_minutes) {
+          const bDur = parseInt(res.data.focus_session_break_minutes, 10);
+          if (bDur > 0) {
+            setBreakDuration(bDur);
+          }
         }
       }
     });
@@ -262,11 +274,11 @@ export function Focus() {
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => startBreak(5)}
+                  onClick={() => startBreak(breakDuration)}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-semibold text-white bg-[#004fff] hover:bg-[#31afd4] shadow-[0_0_15px_rgba(0,79,255,0.35)] transition-all cursor-pointer border border-[#004fff]/50"
                 >
                   <Coffee size={14} />
-                  Take a Break (5m)
+                  Take a Break ({breakDuration}m)
                 </button>
                 <button
                   type="button"
@@ -289,7 +301,7 @@ export function Focus() {
               </div>
               <TimerRing
                 remainingSeconds={remainingSeconds}
-                totalSeconds={5 * 60}
+                totalSeconds={breakDuration * 60}
                 color="#31afd4"
                 glowColor="rgba(49,175,212,0.4)"
               />

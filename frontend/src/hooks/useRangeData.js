@@ -5,7 +5,7 @@ export function useRangeData(startDate, endDate, refreshMs = 60000) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetch = useCallback(async () => {
+  const fetchRangeData = useCallback(async () => {
     if (!window.electronAPI) return;
     try {
       const result = await window.electronAPI.getRange(startDate, endDate);
@@ -22,10 +22,10 @@ export function useRangeData(startDate, endDate, refreshMs = 60000) {
   }, [startDate, endDate]);
 
   useEffect(() => {
-    fetch();
-    const id = setInterval(fetch, refreshMs);
+    fetchRangeData();
+    const id = setInterval(fetchRangeData, refreshMs);
     return () => clearInterval(id);
-  }, [fetch, refreshMs]);
+  }, [fetchRangeData, refreshMs]);
 
-  return { usage, loading, error, refetch: fetch };
+  return { usage, loading, error, refetch: fetchRangeData };
 }
