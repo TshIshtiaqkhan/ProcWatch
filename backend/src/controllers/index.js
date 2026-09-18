@@ -17,7 +17,7 @@ const { DEFAULT_SETTINGS } = require("../configs");
 const { formatDateString } = require("../utils/paths");
 const { logger } = require("../utils/logger");
 const { ok, fail } = require("../utils/response");
-const { isValidDateString, isNonEmptyString, sanitizeLikePattern } = require("../validators");
+const { isValidDateString, isNonEmptyString, sanitizeLikePattern, isValidSettingValue } = require("../validators");
 
 // ─── Usage Queries ────────────────────────────────────────────────────────────
 
@@ -231,18 +231,25 @@ async function updateSettings(_e, payload, ctx) {
       return fail("INVALID_INPUT", "Settings payload is required");
     }
     const allowedKeys = new Set(Object.keys(DEFAULT_SETTINGS));
-    for (const key of Object.keys(payload)) {
+    for (const [key, value] of Object.entries(payload)) {
       if (!allowedKeys.has(key)) {
         return fail("INVALID_INPUT", `Unknown setting key: ${key}`);
+      }
+      if (!isValidSettingValue(key, value)) {
+        return fail("INVALID_INPUT", `Invalid value for setting: ${key}`);
       }
     }
 
     const pool = getPool();
     for (const [key, value] of Object.entries(payload)) {
-      ctx.getCachedSettings()[key] = value;
+      const stringVal = String(value);
+      if (ctx && typeof ctx.getCachedSettings === "function") {
+        const cached = ctx.getCachedSettings();
+        if (cached) cached[key] = stringVal;
+      }
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
-        [key, value]
+        [key, stringVal]
       );
     }
 

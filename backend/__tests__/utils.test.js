@@ -110,7 +110,7 @@ describe("session threshold logic", () => {
 
 // ─── SQL LIKE wildcard escaping logic ─────────────────────────────────────────
 
-const { sanitizeLikePattern } = require("../src/validators");
+const { sanitizeLikePattern, isValidSettingValue } = require("../src/validators");
 
 describe("SQL LIKE wildcard escaping logic", () => {
   it("escapes %, _, and \\ in app name", () => {
@@ -118,5 +118,51 @@ describe("SQL LIKE wildcard escaping logic", () => {
     expect(sanitizeLikePattern("app_name")).toBe("app\\_name");
     expect(sanitizeLikePattern("back\\slash")).toBe("back\\\\slash");
     expect(sanitizeLikePattern("normalApp")).toBe("normalApp");
+  });
+});
+
+describe("isValidSettingValue security validation", () => {
+  it("validates polling_interval_seconds within safe positive bounds (1..3600)", () => {
+    expect(isValidSettingValue("polling_interval_seconds", "5")).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", 10)).toBe(true);
+    // Rejects DoS attack vectors: 0, negative values, decimals, non-numbers
+    expect(isValidSettingValue("polling_interval_seconds", "0")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "-5")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "3601")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "invalid")).toBe(false);
+  });
+
+  it("validates idle_threshold_seconds within safe bounds (10..86400)", () => {
+    expect(isValidSettingValue("idle_threshold_seconds", "90")).toBe(true);
+    expect(isValidSettingValue("idle_threshold_seconds", "5")).toBe(false);
+    expect(isValidSettingValue("idle_threshold_seconds", "100000")).toBe(false);
+  });
+
+  it("validates data_retention_days", () => {
+    expect(isValidSettingValue("data_retention_days", "never")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", "30")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", "0")).toBe(false);
+    expect(isValidSettingValue("data_retention_days", "-1")).toBe(false);
+  });
+
+  it("validates boolean settings", () => {
+    expect(isValidSettingValue("launch_on_login", "true")).toBe(true);
+    expect(isValidSettingValue("launch_on_login", "false")).toBe(true);
+    expect(isValidSettingValue("launch_on_login", true)).toBe(true);
+    expect(isValidSettingValue("launch_on_login", "yes")).toBe(false);
+  });
+
+  it("validates focus session settings and block mode", () => {
+    expect(isValidSettingValue("focus_session_duration_minutes", "25")).toBe(true);
+    expect(isValidSettingValue("focus_session_duration_minutes", "0")).toBe(false);
+    expect(isValidSettingValue("focus_session_block_mode", "overlay")).toBe(true);
+    expect(isValidSettingValue("focus_session_block_mode", "minimal")).toBe(true);
+    expect(isValidSettingValue("focus_session_block_mode", "arbitrary")).toBe(false);
+  });
+
+  it("rejects unknown keys, null, and undefined", () => {
+    expect(isValidSettingValue("unknown_key", "value")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", null)).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", undefined)).toBe(false);
   });
 });
