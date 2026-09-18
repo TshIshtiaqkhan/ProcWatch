@@ -277,7 +277,7 @@ async function purgeOldSessions() {
   if (isNaN(days) || days <= 0) return;
 
   getStmt(
-    "DELETE FROM sessions WHERE datetime(start_time) < datetime('now', '-' || ? || ' days')"
+    "DELETE FROM sessions WHERE date_local < date('now', '-' || ? || ' days')"
   ).run(days);
 }
 
@@ -287,6 +287,11 @@ async function closeDatabase() {
     dbConnection.close();
     dbConnection = null;
   }
+}
+
+function runTransaction(fn) {
+  if (!dbConnection) throw new Error("Database not initialized");
+  return dbConnection.transaction(fn)();
 }
 
 function getAllSettings() {
@@ -303,6 +308,7 @@ module.exports = {
   getSetting,
   setSetting,
   getAllSettings,
+  runTransaction,
   purgeOldSessions,
   closeDatabase,
 };

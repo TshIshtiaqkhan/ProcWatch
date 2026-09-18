@@ -351,9 +351,17 @@ if (!gotTheLock) {
     app.quit();
   });
 
-  app.on("before-quit", () => {
-    stopTracking();
-    closeDatabase();
+  let isQuitting = false;
+  app.on("before-quit", (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    isQuitting = true;
+    stopTracking()
+      .catch((err) => logger.error("Error stopping tracker on quit:", err))
+      .finally(() => {
+        closeDatabase();
+        app.exit();
+      });
   });
 
   app.on("window-all-closed", () => {

@@ -178,7 +178,7 @@ async function getFocusHistory(startDate, endDate) {
        COALESCE(SUM(distractions), 0) as totalDistractions,
        COALESCE(SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END), 0) as completedCount
      FROM focus_sessions
-     WHERE date(start_time, 'localtime') BETWEEN $1 AND $2
+     WHERE start_time >= $1 AND start_time < date($2, '+1 day')
      GROUP BY date(start_time, 'localtime')
      ORDER BY date`,
     [startDate, endDate]
