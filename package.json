@@ -1,6 +1,7 @@
 {
   "name": "procwatch",
-  "version": "1.2.0",
+  "version": "1.2.1",
+  "license": "MIT",
   "description": "A fully offline desktop app for Linux that tracks application usage and productivity",
   "author": {
     "name": "Ishtiaq Khan",

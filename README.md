@@ -2,7 +2,7 @@
 
 A fully offline desktop app for Linux (X11) that tracks how much time you spend in each application, stores everything locally, and presents it through a visual dashboard. Built with Electron and React.
 
-- **Version:** 1.2
+- **Version:** 1.2.1
 - **Platform target:** Linux (X11), Desktop, Fully Offline
 - **Status:** Stable
 
@@ -588,7 +588,7 @@ Automated multi-target release builds are orchestrated via GitHub Actions ([`.gi
 
 ## License
 
-This project is open source. Choose a license and add it to `LICENSE`.
+This project is licensed under the [MIT License](LICENSE).
 
 ## Contributing
 
