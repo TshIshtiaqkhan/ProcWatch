@@ -230,9 +230,21 @@ async function updateSettings(_e, payload, ctx) {
       return fail("INVALID_INPUT", "Settings payload is required");
     }
     const allowedKeys = new Set(Object.keys(DEFAULT_SETTINGS));
-    for (const key of Object.keys(payload)) {
+    for (const [key, value] of Object.entries(payload)) {
       if (!allowedKeys.has(key)) {
         return fail("INVALID_INPUT", `Unknown setting key: ${key}`);
+      }
+      if (key === "polling_interval_seconds") {
+        const num = Number(value);
+        if (!Number.isInteger(num) || num < 1 || num > 3600) {
+          return fail("INVALID_INPUT", "polling_interval_seconds must be an integer between 1 and 3600");
+        }
+      }
+      if (key === "idle_threshold_seconds") {
+        const num = Number(value);
+        if (!Number.isInteger(num) || num < 10 || num > 86400) {
+          return fail("INVALID_INPUT", "idle_threshold_seconds must be an integer between 10 and 86400");
+        }
       }
     }
 

@@ -107,3 +107,59 @@ describe("session threshold logic", () => {
     expect(shouldDiscard(start, end)).toBe(false);
   });
 });
+
+// ─── updateSettings Validation ────────────────────────────────────────────────
+
+describe("updateSettings validation", () => {
+  const { updateSettings } = require("../src/controllers");
+
+  // Mock DB dependencies before testing updateSettings
+  jest.mock("../src/db", () => ({
+    getPool: jest.fn(() => ({
+      query: jest.fn(),
+    })),
+    getSetting: jest.fn(),
+    setSetting: jest.fn(),
+    getAllSettings: jest.fn(),
+    runTransaction: jest.fn((cb) => cb()),
+  }));
+
+  const mockCtx = {
+    getCachedSettings: jest.fn(() => ({})),
+  };
+
+  it("accepts valid polling_interval_seconds and idle_threshold_seconds", async () => {
+    const res1 = await updateSettings(null, { polling_interval_seconds: "10" }, mockCtx);
+    expect(res1.success).toBe(true);
+
+    const res2 = await updateSettings(null, { idle_threshold_seconds: "120" }, mockCtx);
+    expect(res2.success).toBe(true);
+  });
+
+  it("rejects invalid polling_interval_seconds values", async () => {
+    const res1 = await updateSettings(null, { polling_interval_seconds: "0" }, mockCtx);
+    expect(res1.success).toBe(false);
+    expect(res1.error.code).toBe("INVALID_INPUT");
+
+    const res2 = await updateSettings(null, { polling_interval_seconds: "-5" }, mockCtx);
+    expect(res2.success).toBe(false);
+
+    const res3 = await updateSettings(null, { polling_interval_seconds: "5000" }, mockCtx);
+    expect(res3.success).toBe(false);
+
+    const res4 = await updateSettings(null, { polling_interval_seconds: "invalid" }, mockCtx);
+    expect(res4.success).toBe(false);
+  });
+
+  it("rejects invalid idle_threshold_seconds values", async () => {
+    const res1 = await updateSettings(null, { idle_threshold_seconds: "5" }, mockCtx);
+    expect(res1.success).toBe(false);
+    expect(res1.error.code).toBe("INVALID_INPUT");
+
+    const res2 = await updateSettings(null, { idle_threshold_seconds: "90000" }, mockCtx);
+    expect(res2.success).toBe(false);
+
+    const res3 = await updateSettings(null, { idle_threshold_seconds: "abc" }, mockCtx);
+    expect(res3.success).toBe(false);
+  });
+});
