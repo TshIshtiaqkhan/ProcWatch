@@ -2,7 +2,7 @@
 set -e
 
 # ProcWatch Linux One-Line Installer
-REPO="Ishtiaqkh4n/ProcWatch"
+REPO="TshIshtiaqkhan/ProcWatch"
 GITHUB_API="https://api.github.com/repos/${REPO}/releases/latest"
 
 echo "========================================="

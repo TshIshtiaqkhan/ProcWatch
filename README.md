@@ -27,13 +27,13 @@ sudo apt update && sudo apt install -y procwatch
 ### Option 2: One-Line Terminal Script
 Run this single command in your terminal. It automatically detects your Linux distribution, downloads the binary, and configures dependencies:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TshIshtiaqkhan/ProcWatch/main/install.sh | bash
 ```
 
 ---
 
 ### Option 3: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
-1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
+1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
 2. Install via `apt` (which automatically installs required X11 window inspection tools):
    ```bash
    sudo apt install ./procwatch_amd64.deb
@@ -43,7 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/Ishtiaqkh4n/ProcWatch/main/install.
 ---
 
 ### Option 4: Universal Linux (`.AppImage`)
-1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/Ishtiaqkh4n/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
+1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
 2. Make it executable and run:
    ```bash
    chmod +x ProcWatch-*.AppImage

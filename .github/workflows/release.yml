@@ -84,6 +84,7 @@ jobs:
 
       - name: Publish AppImage to Cloudsmith
         if: startsWith(github.ref, 'refs/tags/')
+        continue-on-error: true
         run: |
           APPIMAGE_FILE=$(find release -name '*.AppImage' | head -1)
           if [ -n "$APPIMAGE_FILE" ]; then
