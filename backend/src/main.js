@@ -204,11 +204,12 @@ function updateTrayMenu() {
 
 async function createWindow() {
   const isExplicitlyHidden =
-    process.argv.includes("--hidden") || process.argv.includes("--minimized");
+    process.argv.includes("--hidden") ||
+    process.argv.includes("--minimized") ||
+    process.argv.includes("--autostart");
   const shouldStartMinimized =
-    isExplicitlyHidden &&
-    cachedSettings.start_minimized === "true" &&
-    cachedSettings.first_run_complete === "true";
+    cachedSettings.first_run_complete === "true" &&
+    (isExplicitlyHidden || cachedSettings.start_minimized === "true");
 
   // Build a multi-resolution icon for best Linux/X11 compatibility
   const iconDir = resolveAssetPath("assets", "icon");
@@ -351,9 +352,17 @@ if (!gotTheLock) {
     app.quit();
   });
 
-  app.on("before-quit", () => {
-    stopTracking();
-    closeDatabase();
+  let isQuitting = false;
+  app.on("before-quit", (e) => {
+    if (isQuitting) return;
+    e.preventDefault();
+    isQuitting = true;
+    stopTracking()
+      .catch((err) => logger.error("Error stopping tracker on quit:", err))
+      .finally(() => {
+        closeDatabase();
+        app.exit();
+      });
   });
 
   app.on("window-all-closed", () => {

@@ -16,12 +16,21 @@ import { InteractiveGridPattern } from "../ui/InteractiveGridPattern";
 import { PauseSummaryModal } from "../dashboard/PauseSummaryModal";
 import { useState, useEffect } from "react";
 
+let activeCannonAnimId = null;
+
 const triggerSideCannons = () => {
+  if (activeCannonAnimId) {
+    cancelAnimationFrame(activeCannonAnimId);
+    activeCannonAnimId = null;
+  }
   const end = Date.now() + 2.5 * 1000;
   const colors = ["#004fff", "#31afd4", "#ff007f", "#34d399", "#22d3ee"];
 
   const frame = () => {
-    if (Date.now() > end) return;
+    if (Date.now() > end) {
+      activeCannonAnimId = null;
+      return;
+    }
 
     confetti({
       particleCount: 3,
@@ -40,10 +49,10 @@ const triggerSideCannons = () => {
       colors: colors,
     });
 
-    requestAnimationFrame(frame);
+    activeCannonAnimId = requestAnimationFrame(frame);
   };
 
-  frame();
+  activeCannonAnimId = requestAnimationFrame(frame);
 };
 
 function AlertBanner({ children }) {

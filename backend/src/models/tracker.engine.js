@@ -90,10 +90,10 @@ async function _persistSession() {
   const pool = getPool();
   const dateLocal = formatDateString(new Date(currentSession.start_time));
   const result = await pool.query(
-    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle, date_local) VALUES ($1, $2, $3, $3, 0, $4, $5) RETURNING id",
+    "INSERT INTO sessions (app_name, window_title, start_time, end_time, duration_seconds, is_idle, date_local) VALUES ($1, $2, $3, $3, 0, $4, $5)",
     [currentSession.app_name, currentSession.window_title, currentSession.start_time, currentSession.is_idle, dateLocal]
   );
-  currentSession.id = result.rows[0]?.id;
+  currentSession.id = Number(result.lastInsertRowid);
 }
 
 async function closeSession(endTime) {

@@ -11,6 +11,7 @@ export function useFocusSession() {
   const countdownRef = useRef(null);
   const unsubDistractRef = useRef(null);
   const unsubCompleteRef = useRef(null);
+  const cancelledRef = useRef(false);
 
   // ── Countdown Timer ─────────────────────────────────────────────────────────
 
@@ -52,6 +53,8 @@ export function useFocusSession() {
 
     // Listen for session completion from main process
     unsubCompleteRef.current = window.electronAPI.onFocusCompleted?.((data) => {
+      // Ignore completion events if the user just cancelled the session
+      if (cancelledRef.current) return;
       stopCountdown();
       setLastResult(data);
       setState("completed");
@@ -105,6 +108,7 @@ export function useFocusSession() {
 
   const start = useCallback(async (minutes) => {
     if (!window.electronAPI?.startFocus) return;
+    cancelledRef.current = false;
     const duration = minutes || durationMinutes;
     const res = await window.electronAPI.startFocus(duration);
     if (res?.success && res.data) {
@@ -119,13 +123,19 @@ export function useFocusSession() {
 
   const stop = useCallback(async () => {
     if (!window.electronAPI?.stopFocus) return;
+    cancelledRef.current = true;
     stopCountdown();
-    const res = await window.electronAPI.stopFocus();
-    if (res?.success && res.data) {
-      setLastResult(res.data);
-      setState("idle");
-      setSessionId(null);
+    try {
+      await window.electronAPI.stopFocus();
+    } catch (err) {
+      console.error("Failed to stop focus session:", err);
     }
+    // Always reset to idle — the countdown is already stopped
+    setLastResult(null);
+    setState("idle");
+    setSessionId(null);
+    setRemainingSeconds(0);
+    setDistractions(0);
   }, [stopCountdown]);
 
   const dismissResult = useCallback(() => {

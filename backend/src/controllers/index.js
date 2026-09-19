@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFile } = require("child_process");
 
-const { getPool, getSetting, setSetting, getAllSettings } = require("../db");
+const { getPool, getSetting, setSetting, getAllSettings, runTransaction } = require("../db");
 const {
   startTracking,
   stopTracking,
@@ -147,13 +147,14 @@ async function getAppDetail(_e, payload, _ctx) {
     }
 
     const pool = getPool();
-    const appPattern = `%${payload.appName}%`;
+    const escapedAppName = payload.appName.replace(/[%_\\]/g, "\\$&");
+    const appPattern = `%${escapedAppName}%`;
 
     const [dailyResult, titlesResult] = await Promise.all([
       pool.query(
         `SELECT date_local as date, SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY date_local
@@ -164,7 +165,7 @@ async function getAppDetail(_e, payload, _ctx) {
         `SELECT COALESCE(NULLIF(window_title, ''), app_name) as window_title,
                 SUM(duration_seconds) as seconds
          FROM sessions
-         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4)
+         WHERE (LOWER(app_name) = LOWER($1) OR app_name LIKE $4 ESCAPE '\\')
            AND date_local BETWEEN $2 AND $3
            AND is_idle = 0
          GROUP BY COALESCE(NULLIF(window_title, ''), app_name)
@@ -236,13 +237,15 @@ async function updateSettings(_e, payload, ctx) {
     }
 
     const pool = getPool();
-    for (const [key, value] of Object.entries(payload)) {
-      ctx.getCachedSettings()[key] = value;
-      await pool.query(
-        "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
-        [key, value]
-      );
-    }
+    runTransaction(() => {
+      for (const [key, value] of Object.entries(payload)) {
+        ctx.getCachedSettings()[key] = value;
+        pool.query(
+          "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+          [key, value]
+        );
+      }
+    });
 
     // Bust the tracker settings cache so the new values are picked up on the
     // next poll tick without a DB read for every subsequent tick.
@@ -476,7 +479,7 @@ async function setAutoStart(_e, payload, ctx) {
       const desktopEntry = `[Desktop Entry]
 Type=Application
 Name=ProcWatch
-Exec=${execPath} --no-sandbox
+Exec=${execPath} --hidden
 Icon=${iconPath}
 Hidden=false
 NoDisplay=false

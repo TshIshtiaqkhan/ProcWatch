@@ -52,6 +52,11 @@ const pool = {
    * Execute a SQL statement, returning a PG-style result object.
    * All SELECT-like statements return { rows }.
    * All mutating statements return { rows: [], rowCount, lastInsertRowid }.
+   * 
+   * NOTE: While this returns a Promise for PG API compatibility across the codebase,
+   * better-sqlite3 runs synchronously on the Electron main process thread. Heavy
+   * queries or large dataset iterations should use pool.iterate() or be scheduled
+   * mindfully to avoid blocking the event loop.
    */
   query: async (sql, params = []) => {
     if (!dbConnection) throw new Error("Database not initialized");
@@ -253,6 +258,13 @@ async function initDatabase() {
 
   applyMigrations();
 
+  // Ensure any orphaned sessions without date_local are backfilled on startup
+  try {
+    dbConnection.prepare("UPDATE sessions SET date_local = date(start_time, 'localtime') WHERE date_local IS NULL").run();
+  } catch (backfillErr) {
+    logger.warn("Could not backfill null date_local values:", backfillErr.message);
+  }
+
   return pool;
 }
 
@@ -277,7 +289,7 @@ async function purgeOldSessions() {
   if (isNaN(days) || days <= 0) return;
 
   getStmt(
-    "DELETE FROM sessions WHERE datetime(start_time) < datetime('now', '-' || ? || ' days')"
+    "DELETE FROM sessions WHERE date_local < date('now', '-' || ? || ' days')"
   ).run(days);
 }
 
@@ -287,6 +299,11 @@ async function closeDatabase() {
     dbConnection.close();
     dbConnection = null;
   }
+}
+
+function runTransaction(fn) {
+  if (!dbConnection) throw new Error("Database not initialized");
+  return dbConnection.transaction(fn)();
 }
 
 function getAllSettings() {
@@ -303,6 +320,7 @@ module.exports = {
   getSetting,
   setSetting,
   getAllSettings,
+  runTransaction,
   purgeOldSessions,
   closeDatabase,
 };
