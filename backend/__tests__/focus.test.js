@@ -1,8 +1,47 @@
 jest.mock("electron");
 
-const { isValidDateString } = require("../src/validators");
+const { isValidDateString, isValidSettingValue } = require("../src/validators");
 
 describe("focus session validation and calculation logic", () => {
+  describe("isValidSettingValue", () => {
+    it("validates polling_interval_seconds correctly", () => {
+      expect(isValidSettingValue("polling_interval_seconds", "5")).toBe(true);
+      expect(isValidSettingValue("polling_interval_seconds", 10)).toBe(true);
+      expect(isValidSettingValue("polling_interval_seconds", "0")).toBe(false);
+      expect(isValidSettingValue("polling_interval_seconds", -5)).toBe(false);
+      expect(isValidSettingValue("polling_interval_seconds", 500)).toBe(false);
+      expect(isValidSettingValue("polling_interval_seconds", "abc")).toBe(false);
+    });
+
+    it("validates idle_threshold_seconds correctly", () => {
+      expect(isValidSettingValue("idle_threshold_seconds", "90")).toBe(true);
+      expect(isValidSettingValue("idle_threshold_seconds", 5)).toBe(false);
+      expect(isValidSettingValue("idle_threshold_seconds", "abc")).toBe(false);
+    });
+
+    it("validates boolean flags correctly", () => {
+      expect(isValidSettingValue("launch_on_login", "true")).toBe(true);
+      expect(isValidSettingValue("launch_on_login", "false")).toBe(true);
+      expect(isValidSettingValue("launch_on_login", "yes")).toBe(false);
+    });
+
+    it("validates data_retention_days correctly", () => {
+      expect(isValidSettingValue("data_retention_days", "never")).toBe(true);
+      expect(isValidSettingValue("data_retention_days", "30")).toBe(true);
+      expect(isValidSettingValue("data_retention_days", "-1")).toBe(false);
+    });
+
+    it("validates focus_session_block_mode correctly", () => {
+      expect(isValidSettingValue("focus_session_block_mode", "overlay")).toBe(true);
+      expect(isValidSettingValue("focus_session_block_mode", "invalid")).toBe(false);
+    });
+
+    it("rejects unknown settings keys or null/undefined values", () => {
+      expect(isValidSettingValue("unknown_key", "val")).toBe(false);
+      expect(isValidSettingValue("polling_interval_seconds", null)).toBe(false);
+      expect(isValidSettingValue("polling_interval_seconds", undefined)).toBe(false);
+    });
+  });
   it("validates valid dates correctly", () => {
     expect(isValidDateString("2026-09-06")).toBe(true);
     expect(isValidDateString("2026-01-01")).toBe(true);

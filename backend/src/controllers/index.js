@@ -17,7 +17,7 @@ const { DEFAULT_SETTINGS } = require("../configs");
 const { formatDateString } = require("../utils/paths");
 const { logger } = require("../utils/logger");
 const { ok, fail } = require("../utils/response");
-const { isValidDateString, isNonEmptyString } = require("../validators");
+const { isValidDateString, isNonEmptyString, isValidSettingValue } = require("../validators");
 
 // ─── Usage Queries ────────────────────────────────────────────────────────────
 
@@ -230,9 +230,12 @@ async function updateSettings(_e, payload, ctx) {
       return fail("INVALID_INPUT", "Settings payload is required");
     }
     const allowedKeys = new Set(Object.keys(DEFAULT_SETTINGS));
-    for (const key of Object.keys(payload)) {
+    for (const [key, value] of Object.entries(payload)) {
       if (!allowedKeys.has(key)) {
         return fail("INVALID_INPUT", `Unknown setting key: ${key}`);
+      }
+      if (!isValidSettingValue(key, value)) {
+        return fail("INVALID_INPUT", `Invalid value for setting: ${key}`);
       }
     }
 
