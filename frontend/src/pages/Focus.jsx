@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Target, AlertTriangle, CheckCircle2, Coffee, Play, X, SkipForward } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useFocusSession } from "../hooks/useFocusSession";
