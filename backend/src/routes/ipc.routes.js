@@ -42,6 +42,7 @@ function registerIpcRoutes(ctx) {
   ipcMain.handle("limits:upsert", (e, p) => limitsController.setLimit(e, p, ctx));
   ipcMain.handle("limits:delete", (e, p) => limitsController.removeLimit(e, p, ctx));
   ipcMain.handle("limits:toggle", (e, p) => limitsController.toggleLimitStatus(e, p, ctx));
+  ipcMain.handle("limits:test", (e, p) => limitsController.triggerTestNotification(e, p, ctx));
 
   // System
   ipcMain.handle("system:checkDeps", (e, p) => controllers.checkDeps(e, p, ctx));

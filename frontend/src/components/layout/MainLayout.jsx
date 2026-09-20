@@ -77,6 +77,7 @@ export function MainLayout() {
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [trackerReady, setTrackerReady] = useState(true);
   const [isWayland, setIsWayland] = useState(false);
+  const [limitAlert, setLimitAlert] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -91,6 +92,20 @@ export function MainLayout() {
         setIsWayland(result.data.isWayland);
       }
     });
+
+    const unsubWarn = window.electronAPI.onLimitWarning?.((data) => {
+      setLimitAlert({ ...data, type: "warning" });
+      setTimeout(() => setLimitAlert(null), 9000);
+    });
+    const unsubExceed = window.electronAPI.onLimitExceeded?.((data) => {
+      setLimitAlert({ ...data, type: "exceeded" });
+      setTimeout(() => setLimitAlert(null), 12000);
+    });
+
+    return () => {
+      unsubWarn?.();
+      unsubExceed?.();
+    };
   }, []);
 
   const isAppDetailActive = location.pathname.startsWith("/app/");
@@ -177,6 +192,37 @@ export function MainLayout() {
           <AlertBanner>
             Wayland compositor active. Foreground window title detection is restricted by compositor security; idle tracking remains operational.
           </AlertBanner>
+        )}
+        {limitAlert && (
+          <div
+            className={`px-4 py-3 flex items-center justify-between gap-3 text-xs font-medium border-b backdrop-blur-md transition-all animate-fadeIn sticky top-0 z-30 ${
+              limitAlert.type === "exceeded"
+                ? "bg-[#ef4444]/20 border-[#ef4444]/40 text-[#fca5a5] shadow-[0_4px_15px_rgba(239,68,68,0.25)]"
+                : "bg-[#f59e0b]/20 border-[#f59e0b]/40 text-[#fde68a] shadow-[0_4px_15px_rgba(245,158,11,0.2)]"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle
+                size={16}
+                className={limitAlert.type === "exceeded" ? "text-[#f87171]" : "text-[#fbbf24]"}
+              />
+              <span>
+                {limitAlert.threshold === "test"
+                  ? "🔔 Test Alert: Daily limit notifications are operational!"
+                  : limitAlert.type === "exceeded"
+                  ? `🛑 Daily Limit Reached: You've reached your ${limitAlert.limitMinutes}m daily limit for ${limitAlert.appName}!`
+                  : `⚠️ Usage Alert: You've used 80% of your ${limitAlert.limitMinutes}m daily limit for ${limitAlert.appName}!`}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLimitAlert(null)}
+              className="text-white/60 hover:text-white px-2 py-0.5 rounded cursor-pointer font-bold text-xs"
+              title="Dismiss notification"
+            >
+              ✕
+            </button>
+          </div>
         )}
         <Outlet />
       </main>

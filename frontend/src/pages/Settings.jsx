@@ -87,7 +87,7 @@ const SwitchToggle = ({ label, description, checked, onChange }) => (
 export function Settings() {
   const { settings, update } = useSettings();
   const { categories, add, remove, setDistracting } = useCategories();
-  const { limits, upsert: upsertLimit, remove: removeLimit, toggle: toggleLimit } = useAppLimits();
+  const { limits, upsert: upsertLimit, remove: removeLimit, toggle: toggleLimit, testNotification } = useAppLimits();
   const [newAppName, setNewAppName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newIsDistracting, setNewIsDistracting] = useState(false);
@@ -296,6 +296,7 @@ export function Settings() {
         onUpsert={upsertLimit}
         onRemove={removeLimit}
         onToggle={toggleLimit}
+        onTestNotification={testNotification}
         categories={categories}
       />
 

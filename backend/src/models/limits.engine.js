@@ -195,6 +195,8 @@ async function toggleLimit(appName, isEnabled) {
   return { success: true };
 }
 
+const { execFile } = require("child_process");
+
 // ─── Notification Dispatcher ──────────────────────────────────────────────────
 
 function formatFriendlyMinutes(minutes) {
@@ -205,6 +207,7 @@ function formatFriendlyMinutes(minutes) {
 }
 
 function sendDesktopNotification(title, body) {
+  // 1. Electron Notification API
   try {
     const iconPath = resolveAssetPath("assets", "icon", "256x256.png");
     if (Notification.isSupported()) {
@@ -217,8 +220,35 @@ function sendDesktopNotification(title, body) {
       notif.show();
     }
   } catch (err) {
-    logger.error("Failed to display desktop notification:", err.message);
+    logger.error("Electron desktop notification error:", err.message);
   }
+
+  // 2. Linux native notify-send fallback / guarantee (handles Portal notifications cleanly)
+  if (process.platform === "linux") {
+    try {
+      execFile("notify-send", ["-a", "ProcWatch", title, body], (err) => {
+        if (err && err.code !== "ENOENT") {
+          logger.warn("notify-send execution notice:", err.message);
+        }
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
+function testNotification() {
+  sendDesktopNotification(
+    "ProcWatch — Notification Test",
+    "Desktop notifications are working perfectly!"
+  );
+  notifyRenderer("limits:warning", {
+    appName: "ProcWatch Test",
+    usedSeconds: 900,
+    limitMinutes: 15,
+    threshold: "test",
+  });
+  return { success: true };
 }
 
 // ─── Tracking Engine Tick Check ───────────────────────────────────────────────
@@ -258,23 +288,30 @@ async function checkAppLimit(appName) {
   }
   const alertState = alertedToday.get(key);
 
+  const nowMs = Date.now();
+  const REMINDER_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
   // 1. Exceeded threshold check (100%)
-  if (usedSeconds >= limitSeconds && !alertState.exceeded) {
-    alertState.exceeded = true;
-    alertState.warned = true; // Mark warned as well to avoid trailing warnings
-    const limitLabel = formatFriendlyMinutes(limit.limitMinutes);
-    sendDesktopNotification(
-      `Daily Limit Reached: ${limit.appName}`,
-      `You've reached your ${limitLabel} daily limit for ${limit.appName}.`
-    );
-    notifyRenderer("limits:exceeded", {
-      appName: limit.appName,
-      usedSeconds,
-      limitMinutes: limit.limitMinutes,
-      threshold: "exceeded",
-    });
-    logger.info(`App limit EXCEEDED alert sent for ${limit.appName} (${usedSeconds}s / ${limitSeconds}s)`);
-    return;
+  if (usedSeconds >= limitSeconds) {
+    const shouldAlert = !alertState.exceeded || (nowMs - (alertState.lastExceededAlertTime || 0) >= REMINDER_INTERVAL_MS);
+    if (shouldAlert) {
+      alertState.exceeded = true;
+      alertState.warned = true; // Mark warned as well to avoid trailing warnings
+      alertState.lastExceededAlertTime = nowMs;
+      const limitLabel = formatFriendlyMinutes(limit.limitMinutes);
+      sendDesktopNotification(
+        `Daily Limit Reached: ${limit.appName}`,
+        `You've reached your ${limitLabel} daily limit for ${limit.appName}.`
+      );
+      notifyRenderer("limits:exceeded", {
+        appName: limit.appName,
+        usedSeconds,
+        limitMinutes: limit.limitMinutes,
+        threshold: "exceeded",
+      });
+      logger.info(`App limit EXCEEDED alert sent for ${limit.appName} (${usedSeconds}s / ${limitSeconds}s)`);
+      return;
+    }
   }
 
   // 2. Warning threshold check (default 80%)
@@ -302,6 +339,8 @@ module.exports = {
   deleteLimit,
   toggleLimit,
   checkAppLimit,
+  testNotification,
+  sendDesktopNotification,
   refreshLimitsCache,
   invalidateLimitsCache,
 };
