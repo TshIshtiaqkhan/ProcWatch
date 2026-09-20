@@ -1,7 +1,9 @@
 import { useTodayData } from "../hooks/useTodayData";
+import { useAppLimits } from "../hooks/useAppLimits";
 import { SummaryCard } from "../components/ui/SummaryCard";
 import { AppBarChart } from "../components/charts/AppBarChart";
 import { AppUsageList } from "../components/dashboard/AppUsageList";
+import { AppLimitsCard } from "../components/dashboard/AppLimitsCard";
 import { formatDuration } from "../lib/constants";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
@@ -15,6 +17,8 @@ export function Today() {
     yesterdayIdleSeconds,
     loading,
   } = useTodayData();
+
+  const { limits, loading: limitsLoading } = useAppLimits();
 
   // Fallback demo usage if no database records exist yet
   const demoUsage = [
@@ -119,6 +123,9 @@ export function Today() {
           subtextType="neutral"
         />
       </div>
+
+      {/* Daily App Usage Limits Card */}
+      <AppLimitsCard limits={limits} loading={limitsLoading} />
 
       {/* Time per Application Horizontal Chart Card */}
       <GlassCard className="p-5 space-y-4">
