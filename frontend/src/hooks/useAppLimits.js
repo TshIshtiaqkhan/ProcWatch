@@ -110,17 +110,6 @@ export function useAppLimits() {
     }
   };
 
-  const testNotification = async () => {
-    if (!window.electronAPI?.testLimitNotification) return false;
-    try {
-      const result = await window.electronAPI.testLimitNotification();
-      return Boolean(result?.success);
-    } catch (err) {
-      console.error("Failed to test notification:", err);
-      return false;
-    }
-  };
-
   return {
     limits,
     loading,
@@ -129,7 +118,6 @@ export function useAppLimits() {
     upsert,
     remove,
     toggle,
-    testNotification,
     refetch: fetchLimits,
   };
 }

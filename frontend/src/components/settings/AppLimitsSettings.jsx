@@ -1,25 +1,16 @@
 import { useState } from "react";
-import { AlertTriangle, Bell, Clock, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, Clock, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { AppIcon } from "../ui/AppIcon";
 import { GlassCard } from "../ui/GlassCard";
 
 const PRESET_MINUTES = [15, 30, 45, 60, 120];
 
-export function AppLimitsSettings({ limits = [], onUpsert, onRemove, onToggle, onTestNotification, categories = [] }) {
+export function AppLimitsSettings({ limits = [], onUpsert, onRemove, onToggle, categories = [] }) {
   const [appName, setAppName] = useState("");
   const [limitMinutes, setLimitMinutes] = useState(45);
   const [warnPercent, setWarnPercent] = useState(80);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [testSent, setTestSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const handleTest = async () => {
-    if (onTestNotification) {
-      await onTestNotification();
-      setTestSent(true);
-      setTimeout(() => setTestSent(false), 3000);
-    }
-  };
 
   const handleAdd = async (e) => {
     e?.preventDefault?.();
@@ -63,21 +54,6 @@ export function AppLimitsSettings({ limits = [], onUpsert, onRemove, onToggle, o
             </p>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={handleTest}
-          disabled={testSent}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
-            testSent
-              ? "bg-[#10b981]/15 text-[#34d399] border-[#10b981]/30"
-              : "bg-white/[0.04] text-[#31afd4] hover:text-white hover:bg-[#31afd4]/15 border-[#31afd4]/30"
-          }`}
-          title="Send a test notification to verify your desktop notifications"
-        >
-          <Bell size={13} className={testSent ? "text-[#34d399]" : "text-[#31afd4]"} />
-          <span>{testSent ? "Notification Sent!" : "Test Notification"}</span>
-        </button>
       </div>
 
       {/* Add New Limit Form */}

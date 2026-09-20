@@ -66,20 +66,9 @@ async function toggleLimitStatus(_e, payload, _ctx) {
   }
 }
 
-async function triggerTestNotification(_e, _payload, _ctx) {
-  try {
-    const { testNotification } = require("../models/limits.engine");
-    const result = testNotification();
-    return ok(result);
-  } catch (err) {
-    return fail("LIMITS_TEST_ERROR", String(err.message || err));
-  }
-}
-
 module.exports = {
   getLimits,
   setLimit,
   removeLimit,
   toggleLimitStatus,
-  triggerTestNotification,
 };

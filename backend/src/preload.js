@@ -57,7 +57,6 @@ const electronAPI = {
   deleteLimit: (appName) => ipcRenderer.invoke("limits:delete", { appName }),
   toggleLimit: (appName, isEnabled) =>
     ipcRenderer.invoke("limits:toggle", { appName, isEnabled }),
-  testLimitNotification: () => ipcRenderer.invoke("limits:test"),
   onLimitsUpdated: (callback) => {
     const handler = (_e, data) => callback(data);
     ipcRenderer.on("limits:updated", handler);

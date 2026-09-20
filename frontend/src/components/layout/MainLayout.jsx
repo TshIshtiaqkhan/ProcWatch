@@ -207,9 +207,7 @@ export function MainLayout() {
                 className={limitAlert.type === "exceeded" ? "text-[#f87171]" : "text-[#fbbf24]"}
               />
               <span>
-                {limitAlert.threshold === "test"
-                  ? "🔔 Test Alert: Daily limit notifications are operational!"
-                  : limitAlert.type === "exceeded"
+                {limitAlert.type === "exceeded"
                   ? `🛑 Daily Limit Reached: You've reached your ${limitAlert.limitMinutes}m daily limit for ${limitAlert.appName}!`
                   : `⚠️ Usage Alert: You've used 80% of your ${limitAlert.limitMinutes}m daily limit for ${limitAlert.appName}!`}
               </span>

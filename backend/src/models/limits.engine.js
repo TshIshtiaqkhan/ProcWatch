@@ -237,20 +237,6 @@ function sendDesktopNotification(title, body) {
   }
 }
 
-function testNotification() {
-  sendDesktopNotification(
-    "ProcWatch — Notification Test",
-    "Desktop notifications are working perfectly!"
-  );
-  notifyRenderer("limits:warning", {
-    appName: "ProcWatch Test",
-    usedSeconds: 900,
-    limitMinutes: 15,
-    threshold: "test",
-  });
-  return { success: true };
-}
-
 // ─── Tracking Engine Tick Check ───────────────────────────────────────────────
 
 /**
@@ -339,7 +325,6 @@ module.exports = {
   deleteLimit,
   toggleLimit,
   checkAppLimit,
-  testNotification,
   sendDesktopNotification,
   refreshLimitsCache,
   invalidateLimitsCache,
