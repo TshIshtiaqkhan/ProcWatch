@@ -8,13 +8,25 @@ const OLD_CONFIG_DIR_NAME = "screen-time-app";
 const CONFIG_DIR_NAME = "procwatch";
 
 /**
- * Returns the app config directory, using XDG_CONFIG_HOME or ~/.config fallback.
+ * Returns the app config directory cross-platform:
+ * - Windows: %APPDATA%\procwatch
+ * - Linux: ~/.config/procwatch (or XDG_CONFIG_HOME)
  */
 function getAppConfigDir() {
-  const home = (app && typeof app.getPath === "function")
-    ? app.getPath("home")
-    : process.env.HOME || os.homedir();
+  if (app && typeof app.getPath === "function") {
+    try {
+      return app.getPath("userData");
+    } catch {
+      // fallback if called before app ready
+    }
+  }
 
+  if (process.platform === "win32") {
+    const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+    return path.join(appData, CONFIG_DIR_NAME);
+  }
+
+  const home = process.env.HOME || os.homedir();
   return path.join(
     process.env.XDG_CONFIG_HOME || path.join(home, ".config"),
     CONFIG_DIR_NAME
@@ -22,9 +34,8 @@ function getAppConfigDir() {
 }
 
 // One-time migration from the old "screen-time-app" config dir to "procwatch".
-// Runs at module load (before any caller reads getAppConfigDir) so the DB,
-// logs, and settings move with the rename. No-ops on fresh installs.
 (function migrateConfigDir() {
+  if (process.platform !== "linux") return;
   try {
     const home = (app && typeof app.getPath === "function")
       ? app.getPath("home")
@@ -37,17 +48,16 @@ function getAppConfigDir() {
     if (fs.existsSync(oldDir) && !fs.existsSync(newDir)) {
       fs.renameSync(oldDir, newDir);
     } else if (fs.existsSync(oldDir) && fs.existsSync(newDir)) {
-      console.warn(
-        `[paths] Both ${oldDir} and ${newDir} exist; skipping migration to avoid data loss.`
-      );
+      // Both exist; skip
     }
   } catch (err) {
     console.warn("[paths] Config dir migration skipped:", err.message);
   }
 })();
 
-// Automatically clean up old desktop entries from previous app name
+// Automatically clean up old desktop entries from previous app name (Linux only)
 (function cleanLegacyDesktopEntries() {
+  if (process.platform !== "linux") return;
   try {
     const home = (app && typeof app.getPath === "function")
       ? app.getPath("home")
@@ -88,10 +98,25 @@ function resolveAssetPath(...segments) {
 }
 
 /**
+ * Normalizes an application name across platforms.
+ * Strips Windows .exe extensions, trims whitespace, and replaces empty/null values.
+ *
+ * @param {string} rawName
+ * @returns {string}
+ */
+function normalizeAppName(rawName) {
+  if (!rawName || typeof rawName !== "string") return "Unknown";
+  let clean = rawName.trim();
+  clean = clean.replace(/\.exe$/i, "");
+  return clean || "Unknown";
+}
+
+/**
  * Formats a Date object as YYYY-MM-DD string.
  */
 function formatDateString(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-module.exports = { getAppConfigDir, resolveAssetPath, formatDateString };
+module.exports = { getAppConfigDir, resolveAssetPath, formatDateString, normalizeAppName };
+

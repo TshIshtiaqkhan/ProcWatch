@@ -204,13 +204,20 @@ function updateTrayMenu() {
 // ─── Window ──────────────────────────────────────────────────────────────────
 
 async function createWindow() {
+  const wasOpenedAtLogin =
+    app && typeof app.getLoginItemSettings === "function"
+      ? Boolean(app.getLoginItemSettings().wasOpenedAtLogin)
+      : false;
+
   const isExplicitlyHidden =
     process.argv.includes("--hidden") ||
     process.argv.includes("--minimized") ||
-    process.argv.includes("--autostart");
+    process.argv.includes("--autostart") ||
+    wasOpenedAtLogin;
+
   const shouldStartMinimized =
-    cachedSettings.first_run_complete === "true" &&
-    (isExplicitlyHidden || cachedSettings.start_minimized === "true");
+    isExplicitlyHidden ||
+    (cachedSettings.first_run_complete === "true" && cachedSettings.start_minimized === "true");
 
   // Build a multi-resolution icon for best Linux/X11 compatibility
   const iconDir = resolveAssetPath("assets", "icon");
@@ -302,6 +309,52 @@ async function createWindow() {
   });
 }
 
+function syncAutoStart() {
+  const isAutoStart = cachedSettings && cachedSettings.launch_on_login === "true";
+  if (!isAutoStart) return;
+
+  if (process.platform === "win32") {
+    try {
+      if (app && typeof app.setLoginItemSettings === "function") {
+        app.setLoginItemSettings({
+          openAtLogin: true,
+          args: ["--hidden"],
+        });
+      }
+    } catch (err) {
+      logger.error("Failed to register Windows login item:", err);
+    }
+  } else if (process.platform === "linux") {
+    try {
+      const autoStartDir = path.join(
+        process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config"),
+        "autostart"
+      );
+      fs.mkdirSync(autoStartDir, { recursive: true });
+      const desktopPath = path.join(autoStartDir, "procwatch.desktop");
+      const execPath = app.isPackaged
+        ? fs.realpathSync(app.getPath("exe"))
+        : `${fs.realpathSync(process.execPath)} ${path.resolve(__dirname, "..", "..")}`;
+      const iconPath = fs.existsSync(appIconPath)
+        ? fs.realpathSync(appIconPath)
+        : appIconPath;
+      const desktopEntry = `[Desktop Entry]
+Type=Application
+Name=ProcWatch
+Exec=${execPath} --hidden
+Icon=${iconPath}
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=ProcWatch Application Usage & Productivity Tracker
+`;
+      fs.writeFileSync(desktopPath, desktopEntry);
+    } catch (err) {
+      logger.error("Failed to sync Linux autostart desktop file:", err);
+    }
+  }
+}
+
 // ─── App Lifecycle ───────────────────────────────────────────────────────────
 
 // Set the app name and desktop filename so the WM_CLASS matches
@@ -311,6 +364,9 @@ if (process.platform === "linux") {
   app.commandLine.appendSwitch("class", "procwatch");
 }
 app.setDesktopName("procwatch.desktop");
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.procwatch.app");
+}
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -322,12 +378,19 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    // Load active-win
+    // Load active window tracker cross-platform:
+    // - On Windows: zero-dependency Win32 PowerShell worker (avoids ref-napi crash on Electron 33)
+    // - On Linux/macOS: active-win
     try {
-      const activeWin = require("active-win");
-      setActiveWinFn(activeWin);
+      if (process.platform === "win32") {
+        const { getActiveWindow } = require("./models/windows.tracker");
+        setActiveWinFn(getActiveWindow);
+      } else {
+        const activeWin = require("active-win");
+        setActiveWinFn(activeWin);
+      }
     } catch (err) {
-      logger.error("Failed to load active-win:", err);
+      logger.error("Failed to load active window tracker:", err);
     }
 
     await initDatabase();
@@ -335,6 +398,7 @@ if (!gotTheLock) {
 
     // Cache settings for synchronous access
     cachedSettings = getAllSettings();
+    syncAutoStart();
 
     registerIpcRoutes({ getMainWindow, getCachedSettings, updateTrayMenu, appIconPath });
     await createWindow();

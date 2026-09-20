@@ -433,6 +433,16 @@ async function removeCategory(_e, payload, _ctx) {
 // ─── System ───────────────────────────────────────────────────────────────────
 
 async function checkDeps(_e, _payload, _ctx) {
+  if (process.platform === "win32") {
+    return ok({
+      platform: "win32",
+      xdotool: true,
+      wmctrl: true,
+      sessionType: "windows",
+      isWayland: false,
+    });
+  }
+
   const promisified = (cmd, args) =>
     new Promise((resolve) => {
       execFile(cmd, args, (err) => resolve(!err));
@@ -446,6 +456,7 @@ async function checkDeps(_e, _payload, _ctx) {
   const sessionType = process.env.XDG_SESSION_TYPE ?? "unknown";
 
   return ok({
+    platform: "linux",
     xdotool,
     wmctrl,
     sessionType,
@@ -458,6 +469,19 @@ async function setAutoStart(_e, payload, ctx) {
     if (!payload || typeof payload.enabled !== "boolean") {
       return fail("INVALID_INPUT", "enabled must be a boolean");
     }
+
+    if (process.platform === "win32") {
+      if (app && typeof app.setLoginItemSettings === "function") {
+        app.setLoginItemSettings({
+          openAtLogin: payload.enabled,
+          args: ["--hidden"],
+        });
+      }
+      await setSetting("launch_on_login", String(payload.enabled));
+      return ok();
+    }
+
+    // Linux autostart via .desktop file
     const autoStartDir = path.join(
       process.env.XDG_CONFIG_HOME || path.join(app.getPath("home"), ".config"),
       "autostart"

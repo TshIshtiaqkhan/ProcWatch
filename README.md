@@ -1,19 +1,35 @@
 # ProcWatch
 
-A fully offline desktop app for Linux (X11) that tracks how much time you spend in each application, stores everything locally, and presents it through a visual dashboard. Built with Electron and React.
+A fully offline, privacy-first desktop application for **Linux** and **Windows (10 & 11)** that tracks how much time you spend in each application, stores everything locally in SQLite, enforces daily app limits, and presents deep insights through a modern visual dashboard. Built with Electron and React.
 
-- **Version:** 1.2.1
-- **Platform target:** Linux (X11), Desktop, Fully Offline
+- **Version:** 1.3.0
+- **Platform target:** Linux (X11) & Windows (10 & 11), Desktop, Fully Offline
+- **License:** MIT
 - **Status:** Stable
 
 ---
 
 ## 📥 Installation (For End Users)
 
-You do **not** need Node.js or development tools to use ProcWatch. Choose one of the options below:
+You do **not** need Node.js or development tools to use ProcWatch. Choose the installation option for your operating system:
 
-### Option 1: Cloudsmith APT Repository (Recommended for Debian / Ubuntu / Pop!_OS / Linux Mint)
-Configure the Cloudsmith Debian repository for streamlined package management and automatic updates:
+### 🪟 Windows (10 & 11)
+
+Download the latest Windows build from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest):
+
+1. **NSIS Installer (`ProcWatch-Setup-1.3.0.exe`)**:
+   - Run the installer to install ProcWatch with desktop and start menu shortcuts.
+   - Automatically supports launching in the background on system start.
+2. **Portable Executable (`ProcWatch-1.3.0.exe`)**:
+   - Zero installation required. Simply download and double-click to run anywhere (USB drive, desktop, downloads).
+
+---
+
+### 🐧 Linux
+
+Choose one of the convenient methods below:
+
+#### Option 1: Cloudsmith APT Repository (Debian / Ubuntu / Pop!_OS / Linux Mint)
 ```bash
 # 1. Add Cloudsmith repository key and source list
 curl -1sLf 'https://dl.cloudsmith.io/public/ishtiaq-khan/procwatch/setup.deb.sh' | sudo -E bash
@@ -22,28 +38,20 @@ curl -1sLf 'https://dl.cloudsmith.io/public/ishtiaq-khan/procwatch/setup.deb.sh'
 sudo apt update && sudo apt install -y procwatch
 ```
 
----
-
-### Option 2: One-Line Terminal Script
-Run this single command in your terminal. It automatically detects your Linux distribution, downloads the binary, and configures dependencies:
+#### Option 2: One-Line Terminal Script
 ```bash
 curl -fsSL https://raw.githubusercontent.com/TshIshtiaqkhan/ProcWatch/main/install.sh | bash
 ```
 
----
-
-### Option 3: Debian / Ubuntu / Linux Mint / Pop!_OS (`.deb`)
-1. Download the latest `procwatch_amd64.deb` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
-2. Install via `apt` (which automatically installs required X11 window inspection tools):
+#### Option 3: Debian / Ubuntu Package (`.deb`)
+1. Download `procwatch_1.3.0_amd64.deb` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
+2. Install via `apt` (automatically configures dependencies):
    ```bash
-   sudo apt install ./procwatch_amd64.deb
+   sudo apt install ./procwatch_1.3.0_amd64.deb
    ```
-3. Launch **ProcWatch** from your application launcher or terminal (`procwatch`).
 
----
-
-### Option 4: Universal Linux (`.AppImage`)
-1. Download `ProcWatch-x86_64.AppImage` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith Repository](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
+#### Option 4: Universal Linux (`.AppImage`)
+1. Download `ProcWatch-1.3.0.AppImage` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest).
 2. Make it executable and run:
    ```bash
    chmod +x ProcWatch-*.AppImage
@@ -52,548 +60,165 @@ curl -fsSL https://raw.githubusercontent.com/TshIshtiaqkhan/ProcWatch/main/insta
 
 ---
 
+## ✨ Key Features
+
+- 🔒 **100% Local & Private**: All activity stays strictly on your computer in an embedded SQLite database. Zero cloud sync, zero telemetry, no accounts, and no network requests.
+- ⚡ **Cross-Platform Tracking**:
+  - **Linux**: Active window detection via `xdotool`, `wmctrl`, and `xprop`.
+  - **Windows**: Zero-dependency native Win32 API bridge querying `GetForegroundWindow`, `GetWindowTextW`, and `GetWindowThreadProcessId` with sub-2ms latency. Crash-proof on modern Electron (no broken C++ `ref-napi` / `ffi-napi` pointer compression issues).
+- ⏱️ **Daily App Usage Limits & Budgets**:
+  - Set daily time budgets for distracting applications (e.g. YouTube, Discord, games).
+  - Proactive desktop notifications at **80% (amber warning)** and **100% (exceeded)** with recurring 10-minute overtime reminders.
+  - Live progress bars on the Today Dashboard with visual gauges.
+- 🎯 **Focus Mode & Pomodoro**: Built-in customizable focus sessions with break timers and optional distraction overlay blockers.
+- 🚀 **Silent Background Autostart**:
+  - **Linux**: Automatically writes `~/.config/autostart/procwatch.desktop` with `--hidden`.
+  - **Windows**: Native Windows Registry login startup via `app.setLoginItemSettings({ openAtLogin: true, args: ["--hidden"] })`.
+  - Stays hidden in the system tray upon boot while tracking in the background. Single-instance lock ensures opening the app brings up the dashboard instantly.
+- 📊 **Visual Analytics**:
+  - **Today View**: Real-time active time, idle time, top application metrics, and limit gauges.
+  - **Weekly View**: Daily breakdown bar charts categorized by development, browser, communication, etc.
+  - **Monthly View**: GitHub-style activity heatmaps.
+  - **App Detail**: Drill down into specific applications and individual window titles.
+- 💾 **Data Ownership & Export**: One-click data backup export to CSV or JSON.
+
+---
+
 ## 🛠️ Development & Building from Source (For Contributors)
 
-If you are modifying the source code or contributing to ProcWatch, follow these instructions:
+ProcWatch is organized as an **npm workspaces monorepo** with a single root `node_modules`.
 
 ### Prerequisites
 
-- **OS:** Linux (x64) with an active **X11** desktop session (`$XDG_SESSION_TYPE=x11`).
 - **Node.js:** `>= 22.12.0` and `npm`
-  > **Note:** Electron 33 and native modules (`better-sqlite3`, `@electron/rebuild`) require Node.js 22.12+. If your distro default is older (e.g. Node 18/20), use [nvm](https://github.com/nvm-sh/nvm):
-  > ```bash
-  > nvm install 22 && nvm use 22
-  > ```
-- **OS-Level System Utilities:** Active window tracking relies on `xdotool`, `wmctrl`, and `xprop`:
-  - **Debian / Ubuntu:** `sudo apt update && sudo apt install -y xdotool wmctrl x11-utils`
-  - **Fedora / RHEL:** `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
-  - **Arch Linux:** `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
-  - **openSUSE:** `sudo zypper install xdotool wmctrl xprop`
+  ```bash
+  # Check Node version
+  node -v
+  ```
+- **Platform Prerequisites**:
+  - **Linux**: Active X11 session. Install required utilities:
+    - *Debian / Ubuntu / Mint:* `sudo apt install -y xdotool wmctrl x11-utils`
+    - *Fedora / RHEL:* `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
+    - *Arch Linux:* `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
+  - **Windows**: Windows 10 or 11 with PowerShell (built-in).
 
-### Install Dependencies
+### 1. Clone & Install Dependencies
 
 ```bash
-# Step-by-step
+git clone https://github.com/TshIshtiaqkhan/ProcWatch.git
+cd ProcWatch
+
+# Single install at root (installs all workspace dependencies)
 npm install
-cd backend && npm install
-cd ../frontend && npm install
-cd ..
 
-# Or single command:
-npm install && cd backend && npm install && cd ../frontend && npm install && cd ..
+# Rebuild native modules for Electron
+npm run rebuild
 ```
 
-### Development Mode
+### 2. Run in Development Mode
 
 ```bash
-npm run dev
+# Terminal 1: Start React Vite frontend
+npm run dev --workspace=frontend
+
+# Terminal 2: Launch Electron backend
+npm start
 ```
 
-### Build & Package
+### 3. Run Automated Tests
 
 ```bash
-# Build React frontend
-npm run build
+npm test
+```
+Runs 31 unit tests across:
+- Windows adapter & process name normalization (`backend/__tests__/windows-adapter.test.js`)
+- App limits engine, threshold math & notification limits (`backend/__tests__/limits.test.js`)
+- Focus session engine (`backend/__tests__/focus.test.js`)
+- Path resolution & date formatters (`backend/__tests__/utils.test.js`)
 
-# Package local binary
+### 4. Build & Package
+
+```bash
+# Build React frontend production bundle
+npm run build:frontend
+
+# Package unpacked directory for current host
 npm run pack
 
-# Build production .deb and .AppImage packages (in release/)
+# Package for Linux (.deb and .AppImage)
+npm run dist:linux
+
+# Package for Windows (NSIS setup installer and portable .exe)
+npm run dist:win
+
+# Universal dist for current OS
 npm run dist
 ```
 
-### Project Structure
+---
+
+## 🏗️ Monorepo Project Structure
 
 ```
-.
-├── backend/           # Electron main process and tracker engine
-│   └── src/
-├── frontend/          # React user interface
-│   └── src/
-├── package.json       # Root workspace scripts and Electron Builder config
+ProcWatch/
+├── .github/
+│   └── workflows/
+│       └── release.yml          # GitHub Actions matrix CI/CD (Ubuntu + Windows)
+├── backend/                     # Electron main process
+│   ├── src/
+│   │   ├── configs/             # Default settings and category mappings
+│   │   ├── controllers/         # IPC business logic (limits, stats, autostart)
+│   │   ├── db/                  # SQLite schema & migrations (v1-v4)
+│   │   ├── models/
+│   │   │   ├── focus.engine.js  # Focus mode & Pomodoro state machine
+│   │   │   ├── limits.engine.js # Daily app limits & budget enforcement
+│   │   │   ├── tracker.engine.js# Core polling loop & session manager
+│   │   │   └── windows.tracker.js# Native Win32 API bridge for Windows
+│   │   ├── routes/              # IPC handler registrations
+│   │   ├── utils/               # Cross-platform paths, normalizer, logger
+│   │   ├── main.js              # Electron app entry point & lifecycle
+│   │   └── preload.js           # Secure contextBridge API
+│   ├── __tests__/               # Jest unit tests
+│   └── package.json             # Workspace package config
+├── frontend/                    # React 18 user interface
+│   ├── src/
+│   │   ├── components/          # Dashboard cards, charts, modals, layout
+│   │   ├── hooks/               # useUsage, useAppLimits, useFocus, useSettings
+│   │   ├── pages/               # Today, Weekly, Monthly, AppDetail, Settings, Onboarding
+│   │   ├── App.jsx              # Routing & toast alert notifications
+│   │   └── main.jsx             # React entry
+│   └── package.json             # Workspace package config
+├── package.json                 # Root npm workspaces config & electron-builder targets
 └── README.md
 ```
 
 ---
 
-## 1. Overview
+## 🚀 CI/CD & Automated GitHub Releases
 
-### 1.1 Summary
-A fully offline desktop application for Linux that tracks how much time a user spends in each application/window, stores this data locally, and presents it through a visual dashboard (daily, weekly, monthly views). No internet connection, no cloud sync, no telemetry, no external accounts.
+Automated cross-platform builds are handled via GitHub Actions on every tag push (`v*` or `[0-9]*`):
 
-### 1.2 Problem Statement
-Users want visibility into their computer usage habits (which apps/websites consume their time) without sending any data off their machine. Existing tools (RescueTime, ActivityWatch cloud features, etc.) often require accounts or send data externally. This app solves that with a 100% local-first solution.
-
-### 1.3 Goals
-- Track active application/window usage automatically in the background
-- Distinguish active time from idle time
-- Store all data locally in SQLite — zero network calls
-- Present usage data via clear, simple charts and breakdowns
-- Run persistently via system tray with minimal resource usage
-- Be fully functional with no internet connection at any point (install, run, update)
-
-### 1.4 Non-Goals (out of scope for v1)
-- Cross-device sync
-- Cloud backup
-- Mobile companion app
-- Browser tab-level tracking (only window-level, not per-tab; can be a v2 stretch goal via browser extension)
-- Wayland support (X11 only for v1 — documented as known limitation)
-- Team/multi-user reporting or admin dashboards
-- Website blocking / productivity enforcement features (v1 is observation-only)
-- Windows/macOS builds
-
-### 1.5 Target User / Persona
-- Linux desktop users (X11 session) who want self-awareness of screen habits
-- Developers, freelancers, students who want to audit their own focus time
-- Privacy-conscious users who refuse cloud-based tracking tools
+1. **`build-linux` (ubuntu-latest)**:
+   - Compiles native modules against Electron 33.
+   - Builds frontend production bundle.
+   - Packages `.AppImage` and `.deb`.
+   - Deploys Debian packages to Cloudsmith APT repository and uploads assets to GitHub Releases.
+2. **`build-windows` (windows-latest)**:
+   - Compiles native `better-sqlite3` on Windows.
+   - Builds frontend bundle.
+   - Packages NSIS installer (`.exe`) and portable standalone (`.exe`).
+   - Automatically attaches `.exe` assets to GitHub Releases.
 
 ---
 
-## 2. Success Metrics
+## 🔒 Privacy Guarantee
 
-- App runs continuously for 7+ days without crash or memory leak
-- Tracking data captured with <2% gap/error rate (missed polling intervals)
-- Dashboard loads and renders in <500ms for a 30-day dataset
-- CPU usage of background tracker stays under 1% average on idle system
-- Memory footprint under 150MB for Electron main + renderer combined
+- **No Network Requests**: ProcWatch never connects to any remote server or API.
+- **Local Storage**: Data is saved in `%APPDATA%\procwatch\screen_time.db` on Windows and `~/.config/procwatch/screen_time.db` on Linux.
+- **You Own Your Data**: You can inspect the SQLite database, export everything to CSV/JSON, or wipe all records at any time from Settings.
 
 ---
 
-## 3. System Architecture
+## 📄 License
 
-### 3.1 High-Level Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│              Electron App                     │
-│                                                 │
-│  ┌───────────────┐        ┌─────────────────┐ │
-│  │  Main Process │  IPC   │ Renderer Process│ │
-│  │  (Node.js)    │◄──────►│  (React + JS)   │ │
-│  │               │        │                 │ │
-│  │ - Tracker     │        │ - Dashboard UI  │ │
-│  │ - DB Layer    │        │ - Charts        │ │
-│  │ - Tray Icon   │        │ - Settings Page │ │
-│  │ - IPC Handlers│        │                 │ │
-│  └─────┬─────────┘        └─────────────────┘ │
-│        │                                       │
-│        ▼                                       │
-│  ┌───────────────┐                             │
-│  │  SQLite DB    │                             │
-│  │  (local file) │                             │
-│  └───────────────┘                             │
-└─────────────────────────────────────────────┘
-          │
-          ▼
-   xdotool / wmctrl / xprop (X11 system calls via active-win)
-```
-
-### 3.2 Process Responsibilities
-
-**Main process (Node.js, Electron):**
-- Owns the SQLite database connection (single writer, avoids concurrency issues)
-- Runs the polling loop (active window detection)
-- Runs idle detection via Electron's `powerMonitor` API
-- Manages system tray icon, context menu, app lifecycle
-- Exposes IPC handlers for the renderer to query data (read-only from renderer side)
-- Handles app auto-start on login (optional setting)
-
-**Renderer process (React + JavaScript):**
-- Pure UI layer — no direct file system or DB access (security best practice, contextIsolation enabled)
-- Requests data via `window.electronAPI.getUsage(...)` (exposed through `contextBridge`)
-- Renders charts, tables, settings screen
-
-### 3.3 Security Model
-- `contextIsolation: true`
-- `nodeIntegration: false` in renderer
-- `sandbox: true` where possible
-- Preload script exposes a strict API surface (`preload.js`) — no raw IPC channel names exposed to renderer directly
-- No remote content ever loaded (`webSecurity` stays enabled, no `<webview>` tags pointing externally)
-
----
-
-## 4. Tech Stack (exact versions to pin at project init)
-
-| Layer | Technology | Notes |
-|---|---|---|
-| Shell | Electron (latest stable) | Pure JS, no native rewrite |
-| Language | JavaScript (ES Modules) | Used across both main and renderer processes |
-| UI Framework | React 18+ | Functional components + hooks only |
-| Bundler | Vite | Fast dev reload for the renderer |
-| Local DB | SQLite via `better-sqlite3` | Synchronous, fast, no async overhead for local writes |
-| Active window detection | `active-win` (npm) | Wraps `wmctrl`/`xdotool`/`xprop` on Linux |
-| Idle detection | Electron `powerMonitor.getSystemIdleTime()` | Built-in, cross-desktop-environment safe |
-| Charts | `recharts` | Matches existing React familiarity |
-| Styling | Tailwind CSS | Utility-first CSS via PostCSS |
-| Tray icon | Electron `Tray` API | Built-in |
-| Packaging | `electron-builder` | Produces `.AppImage`, `.deb` |
-| State management (renderer) | React Context + hooks | No Redux needed for this scope |
-| Testing | Vitest (unit), Playwright (E2E, optional v1.1) | |
-
-### 4.1 System Dependencies (Linux, must be present on user's machine)
-- `xdotool` — for active window title and PID detection
-- `wmctrl` — fallback and alternate window listing
-- `xprop` (part of `x11-utils` / `xorg-xprop`) — window property inspection
-- X11 session (`$XDG_SESSION_TYPE` must be `x11`)
-- Node.js `>= 22.12.0` (required for `@electron/rebuild`, `node-abi`, and Electron 33 native bindings)
-
-**Package Installation Commands:**
-- **Debian / Ubuntu / Linux Mint:** `sudo apt update && sudo apt install -y xdotool wmctrl x11-utils`
-- **Fedora / RHEL:** `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
-- **Arch Linux / Manjaro:** `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
-- **openSUSE:** `sudo zypper install xdotool wmctrl xprop`
-
-**Note:** The app checks for the presence of these tools on first launch and displays instructions if any required utility is missing (see Section 7.6).
-
----
-
-## 5. Functional Requirements
-
-### 5.1 Tracking Engine
-
-**FR-1: Active window polling**
-- Poll the currently focused window every **5 seconds** (configurable in settings, range 1–60s)
-- Capture: `app_name` (process/executable name), `window_title` (full title string), `timestamp` (ISO 8601, local time)
-- Each poll either extends the current "session" row (if same app+title as last poll) or closes the previous session and opens a new one
-
-**FR-2: Idle detection**
-- Check system idle time every poll cycle via `powerMonitor.getSystemIdleTime()`
-- If idle time exceeds threshold (default **90 seconds**, configurable), mark the user as idle
-- While idle: stop accumulating time toward the active app; log a separate "Idle" session block
-- When activity resumes: close idle session, resume normal tracking
-
-**FR-3: Session aggregation**
-- Raw polling data is stored as discrete "session" rows: `(app_name, window_title, start_time, end_time)`
-- A background job (or on-write trigger) merges consecutive polls of the same app+title into a single session row rather than storing every 5-second tick — this keeps the DB small
-- Daily aggregation view: sum of all session durations grouped by `app_name` per calendar day (local timezone)
-
-**FR-4: App categorization (v1 basic)**
-- Maintain a simple local mapping table `app_categories(app_name, category)` with sane defaults (e.g., `code` → "Development", `firefox`/`chromium` → "Browser", `slack`/`discord` → "Communication", unmatched → "Uncategorized")
-- User can edit categories manually in Settings
-- Categorization is used for the "time by category" pie chart
-
-**FR-5: Pause/resume tracking**
-- Tray menu option: "Pause Tracking" / "Resume Tracking"
-- While paused, no polling occurs and no data is written
-- Visual indicator (tray icon changes color/badge) when paused
-
-**FR-6: Data retention**
-- Default: keep all data indefinitely (it's local and small — see storage estimate in 6.4)
-- Settings option: "Auto-delete data older than [30/60/90/never] days"
-
-### 5.2 Dashboard / UI
-
-**FR-7: Today view (default screen on open)**
-- Total active time today (large number, top of screen)
-- Total idle time today
-- Bar chart: time spent per app today, sorted descending
-- List view below chart: app icon (if available) + name + duration + percentage of total
-
-**FR-8: Weekly view**
-- Stacked bar chart: one bar per day (last 7 days), segments colored by app or category
-- Toggle: "By App" vs "By Category"
-
-**FR-9: Monthly / custom range view**
-- Calendar heatmap (GitHub-contributions-style) showing total active time per day, color intensity = more time
-- Date range picker for custom start/end queries
-
-**FR-10: App detail drill-down**
-- Click any app in a chart/list → detail page showing:
-  - Time spent per day for that app over selectable range
-  - List of window titles seen for that app (useful for browser: shows page titles) with time per title
-
-**FR-11: Settings screen**
-- Polling interval slider
-- Idle threshold slider
-- Category management (add/edit/remove app→category mappings)
-- Data retention policy dropdown
-- Launch on system login toggle
-- Start minimized to tray toggle
-- Export data button (see FR-12)
-- Clear all data button (with confirmation dialog + typed "DELETE" confirmation)
-
-**FR-12: Data export**
-- Button to export all data as CSV or JSON to a user-chosen local path (via native file save dialog)
-- No network calls involved — pure local file write
-
-**FR-13: System tray**
-- Icon always present while app is running
-- Left-click: open/focus main window
-- Right-click context menu: "Open Dashboard", "Pause/Resume Tracking", "Today's summary" (quick tooltip or submenu with top 3 apps), "Quit"
-- Closing the main window (X button) minimizes to tray by default, doesn't quit the process (configurable)
-
-### 5.3 Application Lifecycle
-
-**FR-14: First-run experience**
-- On first launch: check for `xdotool`/`wmctrl` presence → if missing, show install instructions per common distros (apt/dnf/pacman commands)
-- Check `$XDG_SESSION_TYPE` → if Wayland, show a warning banner: "Active window tracking may not work reliably under Wayland. See docs for workarounds." but still allow the app to run (idle detection still works via powerMonitor regardless)
-- Brief onboarding: 2–3 screen walkthrough (what the app does, where data is stored, privacy note: "100% offline, nothing leaves your machine")
-
-**FR-15: Auto-start on login (optional)**
-- Uses Electron's `app.setLoginItemSettings()` equivalent for Linux (writes a `.desktop` autostart entry to `~/.config/autostart/`)
-- Toggle in settings, off by default (user opts in)
-
----
-
-## 6. Data Model
-
-### 6.1 SQLite Schema
-
-```sql
--- Raw/merged session records
-CREATE TABLE sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    app_name TEXT NOT NULL,
-    window_title TEXT,
-    start_time TEXT NOT NULL,   -- ISO 8601
-    end_time TEXT NOT NULL,     -- ISO 8601
-    duration_seconds INTEGER NOT NULL,
-    is_idle INTEGER NOT NULL DEFAULT 0,  -- 0 = active, 1 = idle block
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX idx_sessions_start_time ON sessions(start_time);
-CREATE INDEX idx_sessions_app_name ON sessions(app_name);
-
--- App -> category mapping
-CREATE TABLE app_categories (
-    app_name TEXT PRIMARY KEY,
-    category TEXT NOT NULL DEFAULT 'Uncategorized'
-);
-
--- User settings (key-value)
-CREATE TABLE settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-);
-
--- Default settings seeded on first run:
--- polling_interval_seconds = '5'
--- idle_threshold_seconds = '90'
--- data_retention_days = 'never'
--- launch_on_login = 'false'
--- start_minimized = 'true'
--- close_to_tray = 'true'
-```
-
-### 6.2 IPC Contract (Main ⇄ Renderer)
-
-| Channel | Direction | Payload | Returns |
-|---|---|---|---|
-| `usage:getToday` | Renderer→Main | `{}` | `{ appName, seconds }[]` |
-| `usage:getRange` | Renderer→Main | `{ startDate, endDate }` | `{ date, appName, seconds }[]` |
-| `usage:getAppDetail` | Renderer→Main | `{ appName, startDate, endDate }` | `{ date, seconds, titles: {title, seconds}[] }[]` |
-| `tracking:pause` | Renderer→Main | `{}` | `{ success: boolean }` |
-| `tracking:resume` | Renderer→Main | `{}` | `{ success: boolean }` |
-| `tracking:status` | Renderer→Main | `{}` | `{ isPaused: boolean }` |
-| `settings:get` | Renderer→Main | `{}` | `Settings object` |
-| `settings:update` | Renderer→Main | `Partial<Settings>` | `{ success: boolean }` |
-| `data:export` | Renderer→Main | `{ format: 'csv'|'json' }` | `{ success: boolean, path?: string }` |
-| `data:clearAll` | Renderer→Main | `{}` | `{ success: boolean }` |
-| `categories:list` | Renderer→Main | `{}` | `{ appName, category }[]` |
-| `categories:update` | Renderer→Main | `{ appName, category }` | `{ success: boolean }` |
-
-### 6.3 Session Merge Logic (pseudocode)
-
-```
-on each poll tick:
-  currentWindow = activeWin()
-  if idleTime > idleThreshold:
-      if lastSession.is_idle == false or null:
-          closeSession(lastSession, now)
-          lastSession = openSession(app_name="Idle", is_idle=true, start=now)
-      // else: still idle, do nothing, extend on close
-  else:
-      if lastSession is null OR lastSession.app_name != currentWindow.app
-         OR lastSession.window_title != currentWindow.title
-         OR lastSession.is_idle == true:
-          closeSession(lastSession, now)  // sets end_time + duration
-          lastSession = openSession(app_name=currentWindow.app,
-                                     window_title=currentWindow.title,
-                                     start=now, is_idle=false)
-      // else: same window as before, do nothing (session continues)
-```
-
-### 6.4 Storage Estimate
-- Assuming ~50 session-switches/day average user, ~200 bytes/row → ~10KB/day → ~3.6MB/year. Negligible storage footprint even over years of use.
-
----
-
-## 7. Non-Functional Requirements
-
-### 7.1 Performance
-- Polling loop must not block the main process event loop — use `setInterval` with lightweight async calls
-- DB writes are synchronous (`better-sqlite3` is sync by design) but fast enough (<5ms per write) to not cause jank
-- Renderer queries should use indexed date-range lookups, never full table scans
-
-### 7.2 Reliability
-- If `active-win` throws (e.g., no window focused, or X11 call fails), catch the error, log it, and skip that poll cycle gracefully — never crash the tracker loop
-- Wrap all DB writes in try/catch; log failures to a local log file (`~/.config/procwatch/logs/`)
-- Handle system sleep/wake: pause tracking during suspend, resume cleanly on wake (Electron `powerMonitor` `suspend`/`resume` events)
-
-### 7.3 Privacy & Offline Guarantee
-- No network permissions requested; app should function correctly with network interfaces fully disabled
-- No analytics, crash reporting, or telemetry SDKs (no Sentry, no Google Analytics, etc.)
-- All data stored in `~/.config/procwatch/data.sqlite` (or `$XDG_DATA_HOME` equivalent) — user owns and controls this file entirely
-- Explicit privacy statement in-app and in README
-
-### 7.4 Resource Usage
-- Background CPU: <1% average when idle
-- Memory: <150MB combined (main + renderer)
-- No GPU acceleration required for charts at this data scale
-
-### 7.5 Accessibility
-- Keyboard navigable settings screen
-- Sufficient color contrast in charts (WCAG AA minimum)
-- Chart data also available in a plain table view as an accessible alternative
-
-### 7.6 Error Handling / Edge Cases
-- Missing `xdotool`/`wmctrl`: show blocking dialog on first run with copy-paste install command for the detected distro (best-effort detection via `/etc/os-release`)
-- Wayland session detected: show non-blocking warning banner, app still launches
-- Corrupted DB file on launch: attempt SQLite integrity check; if failed, prompt user to back up and reset DB rather than silently failing
-- Multiple app instances: use Electron's `app.requestSingleInstanceLock()` to prevent duplicate tracking processes writing to the same DB concurrently
-- Clock changes (e.g., timezone change, NTP correction): store all timestamps in UTC internally, convert to local time only at display layer, to avoid corrupting duration math
-
----
-
-## 8. UI/UX Notes
-
-### 8.1 Screens List
-1. Onboarding (3 steps, first run only)
-2. Today Dashboard (default/home screen)
-3. Weekly View
-4. Monthly/Custom Range View
-5. App Detail Drill-down
-6. Settings
-7. Tray context menu (not a full screen, but a UI surface)
-
-### 8.2 Visual Style
-- Dark mode default (screen-time apps are often checked at end of day; dark mode reduces eye strain), light mode toggle available
-- Minimal, data-forward design — charts and numbers are the hero content, minimal chrome
-- Color palette: distinct, colorblind-safe palette for per-app chart segments (avoid relying on red/green alone)
-
-### 8.3 Empty States
-- First-run dashboard before any data collected: friendly message "Tracking started! Check back in a bit to see your usage." with a subtle loading/pulse animation on the tray icon indicator
-
----
-
-## 9. Packaging & Distribution
-
-### 9.1 Build Targets
-- `.AppImage` (universal, no install required — good default for "fully offline" distribution philosophy)
-- `.deb` (Debian/Ubuntu-based)
-- Optional: `.rpm`, AUR package (community-contributed, v1.1+)
-
-### 9.2 electron-builder Config Notes
-- `asar: true` for packaging renderer/main code
-- Ensure `better-sqlite3` native module is rebuilt for target Electron ABI during CI (`electron-rebuild`)
-- Bundle no auto-updater in v1 (auto-update would require a network check-in — conflicts with "fully offline" philosophy; if added later, must be fully opt-in and clearly disclosed)
-
-### 9.3 App Metadata
-- App name: `ProcWatch`
-- `.desktop` file with correct `Categories=Utility;` for Linux app menu integration
-- Icon set: 16/32/48/64/128/256/512/1024px PNG
-
-### 9.4 CI/CD & Cloudsmith Automated Deployment
-Automated multi-target release builds are orchestrated via GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)) on every tag push (`v*`):
-
-1. **Build Matrix**: Bundles frontend assets (Vite), compiles native C++ modules (`better-sqlite3`, `ref-napi`) against target Electron ABI, and packages Linux `.AppImage` and `.deb` binaries.
-2. **Cloudsmith Artifact Deployment**:
-   - **Native Debian Package (`.deb`)**: Published directly to Cloudsmith APT repository via `cloudsmith push deb` for native `apt-get` installation and update management.
-   - **Universal AppImage (`.AppImage`)**: Pushed to Cloudsmith raw storage with version tagging and release summaries.
-3. **GitHub Releases**: Automatically publishes drafts, attaches all built assets, and generates changelogs.
-
-#### Required GitHub Secrets & Variables
-
-| Variable / Secret | Type | Description |
-|---|---|---|
-| `CLOUDSMITH_API_KEY` | Secret | Cloudsmith API Token with package write permissions |
-| `CLOUDSMITH_OWNER` | Variable | Cloudsmith workspace/owner slug (e.g. `ishtiaq-khan`) |
-| `CLOUDSMITH_REPO` | Variable | Cloudsmith repository slug (e.g. `procwatch`) |
-| `GITHUB_TOKEN` | Secret | Automatically provided by GitHub Actions for release creation |
-
----
-
-## 10. Milestones / Roadmap
-
-**Milestone 1 — Core Tracking (Week 1–2)**
-- Electron + JS scaffold, `better-sqlite3` setup, schema migration
-- Polling loop + `active-win` integration + idle detection
-- Session merge logic, manual DB inspection to verify correctness
-
-**Milestone 2 — Dashboard MVP (Week 2–3)**
-- Today view with bar chart + list
-- IPC contract implemented end-to-end
-- Tray icon + pause/resume
-
-**Milestone 3 — Full Views + Settings (Week 3–4)**
-- Weekly, Monthly/heatmap, App detail drill-down
-- Settings screen (polling interval, idle threshold, categories, retention)
-- Data export (CSV/JSON)
-
-**Milestone 4 — Polish & Packaging (Week 4–5)**
-- First-run onboarding + dependency checks (xdotool/wmctrl)
-- Error handling edge cases (section 7.6)
-- `.AppImage` + `.deb` builds via electron-builder
-- README + privacy documentation
-
-**Milestone 5 (Stretch, v1.1)**
-- Wayland support investigation (`wlrctl` / compositor-specific hooks)
-- Browser extension for per-tab/URL tracking
-- `.rpm` / AUR packaging
-
----
-
-## 11. Open Questions
-
-- Should idle time be shown in the dashboard at all, or only active time? (Recommendation: show both, clearly separated)
-- Should there be a "focus session" / Pomodoro-style feature layered on top later? (Explicitly out of scope for v1 per section 1.4, but worth flagging as a common feature request)
-- App icon extraction: should the app try to pull real app icons (via `.desktop` file lookup / icon theme) for the list view, or use generic placeholders in v1? (Recommendation: generic first-letter avatar in v1, real icons as v1.1 polish)
-- Multi-monitor behavior: if a window spans/is dragged across monitors, does this affect `active-win` results? (Needs testing — flag as a QA item)
-
----
-
-## 12. Risks
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| `active-win` reliability varies across desktop environments (GNOME/KDE/XFCE) | Medium | Test on at least 2 major DEs before v1 ship; document known issues |
-| Wayland adoption growing on Linux distros, X11-only limits addressable market | Medium | Clearly document limitation; plan Wayland support as fast-follow |
-| `better-sqlite3` native module rebuild issues across Electron versions | Low-Medium | Pin exact Electron + better-sqlite3 versions; test rebuild in CI |
-| User perceives background tracking as invasive even though local-only | Low | Strong onboarding messaging + visible tray indicator + easy pause |
-
----
-
-## 13. Appendix
-
-### 13.1 Example `active-win` output (Linux/X11)
-```json
-{
-  "title": "PRD.md - Visual Studio Code",
-  "id": 41943044,
-  "owner": {
-    "name": "code",
-    "processId": 12345,
-    "path": "/usr/share/code/code"
-  }
-}
-```
-
-### 13.2 Glossary
-- **Session**: a contiguous block of time spent in one app/window before switching
-- **Idle**: period where no keyboard/mouse input detected beyond the configured threshold
-- **X11 / Wayland**: the two display server protocols on Linux; determines which system APIs are available for window inspection
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
-## Contributing
-
-Contributions are welcome. Please open an issue or submit a pull request.
-
-## Privacy
-
-All data is stored locally on your device. No telemetry or analytics are collected.
+ProcWatch is open-source software licensed under the [MIT License](LICENSE).

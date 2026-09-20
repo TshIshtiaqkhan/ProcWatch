@@ -123,49 +123,66 @@ export function Onboarding({ onComplete }) {
 
           {/* Dependency check (shown on step 0) */}
           {step === 0 && deps && (
-            <div className="bg-[#18181b]/80 border border-[#27272a] rounded-xl p-4 mb-6 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-[#f4f4f5] uppercase tracking-wider">
-                  System Dependencies (Linux X11)
-                </h3>
-                <span className="text-[11px] text-[#71717a] uppercase font-mono">
-                  {deps.sessionType || "X11"}
-                </span>
-              </div>
-
-              <div className="space-y-2 pt-1">
-                <DepStatus label="xdotool" ok={deps.xdotool} desc="Active window title & focus detection" />
-                <DepStatus label="wmctrl" ok={deps.wmctrl} desc="Window manager & class identification" />
-              </div>
-
-              {deps.isWayland && (
-                <div className="flex items-start gap-2 text-[#fbbf24] text-xs mt-2 p-2.5 rounded-lg bg-[#fbbf24]/10 border border-[#fbbf24]/20">
-                  <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[#fbbf24]" />
-                  <span>
-                    Wayland detected — foreground window title queries are restricted by compositor security. Idle detection remains active.
+            deps.platform === "win32" ? (
+              <div className="bg-[#18181b]/80 border border-[#27272a] rounded-xl p-4 mb-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold text-[#f4f4f5] uppercase tracking-wider">
+                    Platform Engine (Windows)
+                  </h3>
+                  <span className="text-[11px] text-[#34d399] uppercase font-mono font-semibold">
+                    Native Win32
                   </span>
                 </div>
-              )}
-
-              {(!deps.xdotool || !deps.wmctrl) && (
-                <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-[#a1a1aa] space-y-2">
-                  <p className="text-xs font-medium text-[#f4f4f5]">
-                    Install missing dependencies for active window tracking:
-                  </p>
-
-                  <div className="flex items-center justify-between bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-2 font-mono text-xs text-[#31afd4]">
-                    <code>sudo apt install -y xdotool wmctrl</code>
-                    <button
-                      onClick={() => copyCommand("sudo apt install -y xdotool wmctrl")}
-                      className="ml-2 p-1 text-[#71717a] hover:text-white transition-colors cursor-pointer"
-                      title="Copy command"
-                    >
-                      {copied ? <Check size={14} className="text-[#34d399]" /> : <Copy size={14} />}
-                    </button>
-                  </div>
+                <div className="space-y-2 pt-1">
+                  <DepStatus label="Active Window Engine" ok={true} desc="Direct Win32 foreground API tracking" />
+                  <DepStatus label="Idle Detection" ok={true} desc="Windows hardware idle state monitor" />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="bg-[#18181b]/80 border border-[#27272a] rounded-xl p-4 mb-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold text-[#f4f4f5] uppercase tracking-wider">
+                    System Dependencies (Linux X11)
+                  </h3>
+                  <span className="text-[11px] text-[#71717a] uppercase font-mono">
+                    {deps.sessionType || "X11"}
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <DepStatus label="xdotool" ok={deps.xdotool} desc="Active window title & focus detection" />
+                  <DepStatus label="wmctrl" ok={deps.wmctrl} desc="Window manager & class identification" />
+                </div>
+
+                {deps.isWayland && (
+                  <div className="flex items-start gap-2 text-[#fbbf24] text-xs mt-2 p-2.5 rounded-lg bg-[#fbbf24]/10 border border-[#fbbf24]/20">
+                    <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[#fbbf24]" />
+                    <span>
+                      Wayland detected — foreground window title queries are restricted by compositor security. Idle detection remains active.
+                    </span>
+                  </div>
+                )}
+
+                {(!deps.xdotool || !deps.wmctrl) && (
+                  <div className="mt-3 pt-3 border-t border-white/[0.06] text-xs text-[#a1a1aa] space-y-2">
+                    <p className="text-xs font-medium text-[#f4f4f5]">
+                      Install missing dependencies for active window tracking:
+                    </p>
+
+                    <div className="flex items-center justify-between bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-2 font-mono text-xs text-[#31afd4]">
+                      <code>sudo apt install -y xdotool wmctrl</code>
+                      <button
+                        onClick={() => copyCommand("sudo apt install -y xdotool wmctrl")}
+                        className="ml-2 p-1 text-[#71717a] hover:text-white transition-colors cursor-pointer"
+                        title="Copy command"
+                      >
+                        {copied ? <Check size={14} className="text-[#34d399]" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
           )}
 
           {/* Navigation */}

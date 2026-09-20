@@ -2,8 +2,8 @@ const DEFAULT_SETTINGS = {
   polling_interval_seconds: "5",
   idle_threshold_seconds: "90",
   data_retention_days: "never",
-  launch_on_login: "false",
-  start_minimized: "false",
+  launch_on_login: "true",
+  start_minimized: "true",
   close_to_tray: "true",
   first_run_complete: "false",
   focus_session_duration_minutes: "25",
@@ -37,6 +37,20 @@ const DEFAULT_CATEGORIES = {
   thunar: "System",
   gimp: "Creative",
   inkscape: "Creative",
+  // Windows apps
+  msedge: "Browser",
+  devenv: "Development",
+  notepad: "Productivity",
+  explorer: "System",
+  powershell: "System",
+  pwsh: "System",
+  cmd: "System",
+  WindowsTerminal: "System",
+  Teams: "Communication",
+  Zoom: "Communication",
+  WINWORD: "Productivity",
+  EXCEL: "Productivity",
+  POWERPNT: "Productivity",
 };
 
 module.exports = { DEFAULT_SETTINGS, DEFAULT_CATEGORIES };
