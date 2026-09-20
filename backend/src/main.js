@@ -311,6 +311,9 @@ if (process.platform === "linux") {
   app.commandLine.appendSwitch("class", "procwatch");
 }
 app.setDesktopName("procwatch.desktop");
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.procwatch.app");
+}
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -322,12 +325,19 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(async () => {
-    // Load active-win
+    // Load active window tracker cross-platform:
+    // - On Windows: zero-dependency Win32 PowerShell worker (avoids ref-napi crash on Electron 33)
+    // - On Linux/macOS: active-win
     try {
-      const activeWin = require("active-win");
-      setActiveWinFn(activeWin);
+      if (process.platform === "win32") {
+        const { getActiveWindow } = require("./models/windows.tracker");
+        setActiveWinFn(getActiveWindow);
+      } else {
+        const activeWin = require("active-win");
+        setActiveWinFn(activeWin);
+      }
     } catch (err) {
-      logger.error("Failed to load active-win:", err);
+      logger.error("Failed to load active window tracker:", err);
     }
 
     await initDatabase();

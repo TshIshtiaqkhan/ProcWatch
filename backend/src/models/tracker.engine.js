@@ -1,7 +1,7 @@
 const { powerMonitor } = require("electron");
 const { getPool, getSetting } = require("../db");
 const { logger } = require("../utils/logger");
-const { formatDateString } = require("../utils/paths");
+const { formatDateString, normalizeAppName } = require("../utils/paths");
 const { getActiveFocusSession, checkDistraction } = require("./focus.engine");
 const { checkAppLimit } = require("./limits.engine");
 
@@ -201,8 +201,8 @@ async function pollActiveWindow() {
       return;
     }
 
-    const appName = activeWindow.owner.name;
-    const windowTitle = activeWindow.title;
+    const appName = normalizeAppName(activeWindow?.owner?.name);
+    const windowTitle = activeWindow?.title || "";
 
     // ── Focus Mode distraction check ──
     if (getActiveFocusSession()) {
@@ -266,6 +266,12 @@ async function stopTracking() {
   }
   if (currentSession) {
     await closeSession(new Date().toISOString());
+  }
+  if (process.platform === "win32") {
+    try {
+      const { disposeWindowsTracker } = require("./windows.tracker");
+      disposeWindowsTracker();
+    } catch {}
   }
 }
 

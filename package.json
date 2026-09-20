@@ -2,7 +2,7 @@
   "name": "procwatch",
   "version": "1.2.1",
   "license": "MIT",
-  "description": "A fully offline desktop app for Linux that tracks application usage and productivity",
+  "description": "A fully offline desktop app that tracks application usage and productivity",
   "author": {
     "name": "Ishtiaq Khan",
     "email": "ishtiaqkhan@example.com"
@@ -24,7 +24,9 @@
     "rebuild": "npx @electron/rebuild -f -w better-sqlite3",
     "test": "npm test --workspace=backend",
     "pack": "npm run build && npx electron-builder --dir",
-    "dist": "npm run build && npx electron-builder"
+    "dist": "npm run build && npx electron-builder",
+    "dist:linux": "npm run build && npx electron-builder --linux",
+    "dist:win": "npm run build && npx electron-builder --win"
   },
   "build": {
     "electronVersion": "33.4.11",
@@ -85,6 +87,30 @@
         "wmctrl",
         "x11-utils"
       ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "frontend/assets/icon/256x256.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ProcWatch"
     },
     "asar": true
   },

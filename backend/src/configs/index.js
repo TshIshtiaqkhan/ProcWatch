@@ -37,6 +37,20 @@ const DEFAULT_CATEGORIES = {
   thunar: "System",
   gimp: "Creative",
   inkscape: "Creative",
+  // Windows apps
+  msedge: "Browser",
+  devenv: "Development",
+  notepad: "Productivity",
+  explorer: "System",
+  powershell: "System",
+  pwsh: "System",
+  cmd: "System",
+  WindowsTerminal: "System",
+  Teams: "Communication",
+  Zoom: "Communication",
+  WINWORD: "Productivity",
+  EXCEL: "Productivity",
+  POWERPNT: "Productivity",
 };
 
 module.exports = { DEFAULT_SETTINGS, DEFAULT_CATEGORIES };
