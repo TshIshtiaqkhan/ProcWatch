@@ -28,20 +28,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libarchive-tools icnsutils graphicsmagick xdotool wmctrl x11-utils
 
-      - name: Install root dependencies
+      - name: Install all dependencies (npm workspaces)
         run: npm install
 
-      - name: Install backend dependencies
-        run: cd backend && npm install
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm install
-
       - name: Rebuild native dependencies for Electron
-        run: cd backend && npx -y @electron/rebuild
+        run: npm run rebuild
 
       - name: Build frontend production bundle
-        run: cd frontend && npm run build
+        run: npm run build:frontend
 
       - name: Package AppImage and deb
         run: npx electron-builder --linux AppImage deb --publish never

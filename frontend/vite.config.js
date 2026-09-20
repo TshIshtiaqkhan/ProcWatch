@@ -13,6 +13,7 @@ function removeCrossorigin() {
 export default defineConfig({
   plugins: [react(), removeCrossorigin()],
   base: "./",
+  cacheDir: "./.vite",
   server: {
     port: 5173,
   },
