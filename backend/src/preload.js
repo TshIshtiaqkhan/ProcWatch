@@ -50,6 +50,29 @@ const electronAPI = {
     return () => ipcRenderer.removeListener("focus:completed", handler);
   },
 
+  // App Usage Limits
+  getLimits: () => ipcRenderer.invoke("limits:get"),
+  upsertLimit: (appName, limitMinutes, warnAtPercent, isEnabled) =>
+    ipcRenderer.invoke("limits:upsert", { appName, limitMinutes, warnAtPercent, isEnabled }),
+  deleteLimit: (appName) => ipcRenderer.invoke("limits:delete", { appName }),
+  toggleLimit: (appName, isEnabled) =>
+    ipcRenderer.invoke("limits:toggle", { appName, isEnabled }),
+  onLimitsUpdated: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.on("limits:updated", handler);
+    return () => ipcRenderer.removeListener("limits:updated", handler);
+  },
+  onLimitExceeded: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.on("limits:exceeded", handler);
+    return () => ipcRenderer.removeListener("limits:exceeded", handler);
+  },
+  onLimitWarning: (callback) => {
+    const handler = (_e, data) => callback(data);
+    ipcRenderer.on("limits:warning", handler);
+    return () => ipcRenderer.removeListener("limits:warning", handler);
+  },
+
   // System
   checkDeps: () => ipcRenderer.invoke("system:checkDeps"),
   setAutoStart: (enabled) => ipcRenderer.invoke("system:setAutoStart", { enabled }),

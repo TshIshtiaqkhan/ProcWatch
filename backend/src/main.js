@@ -21,6 +21,7 @@ const {
 const { logger } = require("./utils/logger");
 const { registerIpcRoutes } = require("./routes/ipc.routes");
 const { setMainWindow: setFocusMainWindow } = require("./models/focus.engine");
+const { setMainWindow: setLimitsMainWindow } = require("./models/limits.engine");
 
 // Resolve app icon — works in both dev (project root) and packaged (asar) mode
 const appIconPath = resolveAssetPath("assets", "icon", "256x256.png");
@@ -247,6 +248,7 @@ async function createWindow() {
   });
 
   setFocusMainWindow(mainWindow);
+  setLimitsMainWindow(mainWindow);
 
   mainWindow.webContents.on("console-message", (event, level, message, line, sourceId) => {
     console.log(`[RENDERER CONSOLE] [level ${level}] ${message} (${sourceId}:${line})`);
@@ -295,6 +297,7 @@ async function createWindow() {
 
   mainWindow.on("closed", () => {
     setFocusMainWindow(null);
+    setLimitsMainWindow(null);
     mainWindow = null;
   });
 }

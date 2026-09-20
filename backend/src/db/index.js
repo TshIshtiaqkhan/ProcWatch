@@ -206,6 +206,25 @@ function applyMigrations() {
     }
     logger.info("Migration v3 complete.");
   }
+
+  // ─── v4: Daily App Usage Limits ───────────────────────────────────────────
+  if (getSchemaVersion() < 4) {
+    const tables = dbConnection
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='app_limits'")
+      .all();
+    if (tables.length > 0) {
+      dbConnection
+        .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (4)")
+        .run();
+    } else {
+      runMigrationFile("migration_v4.sql", () => {
+        dbConnection
+          .prepare("INSERT OR REPLACE INTO schema_version (version) VALUES (4)")
+          .run();
+      });
+    }
+    logger.info("Migration v4 complete.");
+  }
 }
 
 // ─── Database Initialisation ──────────────────────────────────────────────────

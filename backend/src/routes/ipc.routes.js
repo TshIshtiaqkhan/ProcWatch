@@ -1,6 +1,7 @@
 const { ipcMain } = require("electron");
 const controllers = require("../controllers");
 const focusController = require("../controllers/focus.controller");
+const limitsController = require("../controllers/limits.controller");
 
 // Registers all IPC channels, wiring each to its controller handler.
 // `ctx` carries shared app state the handlers need (main window, cached
@@ -35,6 +36,12 @@ function registerIpcRoutes(ctx) {
   ipcMain.handle("focus:stop", (e, p) => focusController.stopFocus(e, p, ctx));
   ipcMain.handle("focus:status", (e, p) => focusController.focusStatus(e, p, ctx));
   ipcMain.handle("focus:history", (e, p) => focusController.focusHistory(e, p, ctx));
+
+  // App Usage Limits
+  ipcMain.handle("limits:get", (e, p) => limitsController.getLimits(e, p, ctx));
+  ipcMain.handle("limits:upsert", (e, p) => limitsController.setLimit(e, p, ctx));
+  ipcMain.handle("limits:delete", (e, p) => limitsController.removeLimit(e, p, ctx));
+  ipcMain.handle("limits:toggle", (e, p) => limitsController.toggleLimitStatus(e, p, ctx));
 
   // System
   ipcMain.handle("system:checkDeps", (e, p) => controllers.checkDeps(e, p, ctx));

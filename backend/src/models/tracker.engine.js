@@ -3,6 +3,7 @@ const { getPool, getSetting } = require("../db");
 const { logger } = require("../utils/logger");
 const { formatDateString } = require("../utils/paths");
 const { getActiveFocusSession, checkDistraction } = require("./focus.engine");
+const { checkAppLimit } = require("./limits.engine");
 
 let currentSession = null;
 let pollTimer = null;
@@ -210,6 +211,13 @@ async function pollActiveWindow() {
       } catch (err) {
         logger.error("Focus distraction check error:", err);
       }
+    }
+
+    // ── App Usage Limits check ──
+    try {
+      await checkAppLimit(appName);
+    } catch (err) {
+      logger.error("App limit check error:", err);
     }
 
     if (

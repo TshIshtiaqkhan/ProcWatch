@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download, Target } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useCategories } from "../hooks/useCategories";
+import { useAppLimits } from "../hooks/useAppLimits";
 import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
+import { AppLimitsSettings } from "../components/settings/AppLimitsSettings";
 
 const SliderCard = ({ label, min, max, value, onChange, readoutTag, unit }) => {
   const [localVal, setLocalVal] = useState(value);
@@ -85,6 +87,7 @@ const SwitchToggle = ({ label, description, checked, onChange }) => (
 export function Settings() {
   const { settings, update } = useSettings();
   const { categories, add, remove, setDistracting } = useCategories();
+  const { limits, upsert: upsertLimit, remove: removeLimit, toggle: toggleLimit } = useAppLimits();
   const [newAppName, setNewAppName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newIsDistracting, setNewIsDistracting] = useState(false);
@@ -286,6 +289,15 @@ export function Settings() {
           </div>
         </div>
       </GlassCard>
+
+      {/* Daily App Usage Limits */}
+      <AppLimitsSettings
+        limits={limits}
+        onUpsert={upsertLimit}
+        onRemove={removeLimit}
+        onToggle={toggleLimit}
+        categories={categories}
+      />
 
       {/* Application Categorization */}
       <GlassCard className="p-6 space-y-4" aria-label="Application categorization">

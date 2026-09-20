@@ -51,6 +51,10 @@
         "to": "migration_v3.sql"
       },
       {
+        "from": "backend/src/db/migration_v4.sql",
+        "to": "migration_v4.sql"
+      },
+      {
         "from": "frontend/assets/icon",
         "to": "assets/icon"
       }
