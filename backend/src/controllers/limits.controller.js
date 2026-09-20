@@ -5,6 +5,7 @@ const {
   toggleLimit,
 } = require("../models/limits.engine");
 const { ok, fail } = require("../utils/response");
+const { isNonEmptyString } = require("../validators");
 
 // ─── App Limits Handlers ──────────────────────────────────────────────────────
 
@@ -19,8 +20,8 @@ async function getLimits(_e, _payload, _ctx) {
 
 async function setLimit(_e, payload, _ctx) {
   try {
-    if (!payload || !payload.appName || typeof payload.appName !== "string") {
-      return fail("INVALID_INPUT", "appName is required and must be a string");
+    if (!payload || !isNonEmptyString(payload.appName)) {
+      return fail("INVALID_INPUT", "appName is required and must be a non-empty string");
     }
     const mins = Number(payload.limitMinutes);
     if (!Number.isInteger(mins) || mins <= 0 || mins > 1440) {
@@ -41,8 +42,8 @@ async function setLimit(_e, payload, _ctx) {
 
 async function removeLimit(_e, payload, _ctx) {
   try {
-    if (!payload || !payload.appName || typeof payload.appName !== "string") {
-      return fail("INVALID_INPUT", "appName is required and must be a string");
+    if (!payload || !isNonEmptyString(payload.appName)) {
+      return fail("INVALID_INPUT", "appName is required and must be a non-empty string");
     }
     const result = await deleteLimit(payload.appName);
     return ok(result);
@@ -53,8 +54,8 @@ async function removeLimit(_e, payload, _ctx) {
 
 async function toggleLimitStatus(_e, payload, _ctx) {
   try {
-    if (!payload || !payload.appName || typeof payload.appName !== "string") {
-      return fail("INVALID_INPUT", "appName is required and must be a string");
+    if (!payload || !isNonEmptyString(payload.appName)) {
+      return fail("INVALID_INPUT", "appName is required and must be a non-empty string");
     }
     if (payload.isEnabled === undefined) {
       return fail("INVALID_INPUT", "isEnabled boolean is required");

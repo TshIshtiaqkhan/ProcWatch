@@ -9,6 +9,7 @@
 jest.mock("electron");
 
 const { formatDateString } = require("../src/utils/paths");
+const { isValidSettingValue, isNonEmptyString } = require("../src/validators");
 
 describe("formatDateString", () => {
   it("returns a YYYY-MM-DD string for a given Date", () => {
@@ -78,6 +79,55 @@ describe("convertParams logic", () => {
 // ─── MIN_SESSION_SECONDS guard ────────────────────────────────────────────────
 // Verify the threshold logic without loading the actual tracker module
 // (which has side effects via powerMonitor.on at module load time).
+
+describe("isValidSettingValue logic", () => {
+  it("validates polling_interval_seconds correctly", () => {
+    expect(isValidSettingValue("polling_interval_seconds", "5")).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", 10)).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", "0")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "-5")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", 100)).toBe(false);
+  });
+
+  it("validates idle_threshold_seconds correctly", () => {
+    expect(isValidSettingValue("idle_threshold_seconds", "90")).toBe(true);
+    expect(isValidSettingValue("idle_threshold_seconds", 10)).toBe(true);
+    expect(isValidSettingValue("idle_threshold_seconds", 5)).toBe(false);
+    expect(isValidSettingValue("idle_threshold_seconds", 5000)).toBe(false);
+  });
+
+  it("validates data_retention_days correctly", () => {
+    expect(isValidSettingValue("data_retention_days", "never")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", "30")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", 0)).toBe(false);
+    expect(isValidSettingValue("data_retention_days", -1)).toBe(false);
+  });
+
+  it("validates boolean setting strings correctly", () => {
+    expect(isValidSettingValue("launch_on_login", "true")).toBe(true);
+    expect(isValidSettingValue("start_minimized", "false")).toBe(true);
+    expect(isValidSettingValue("close_to_tray", "invalid")).toBe(false);
+  });
+
+  it("rejects null or undefined values", () => {
+    expect(isValidSettingValue("polling_interval_seconds", null)).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", undefined)).toBe(false);
+  });
+});
+
+describe("isNonEmptyString logic", () => {
+  it("accepts valid non-empty strings", () => {
+    expect(isNonEmptyString("Discord")).toBe(true);
+    expect(isNonEmptyString("  Code  ")).toBe(true);
+  });
+
+  it("rejects empty or whitespace-only strings or non-strings", () => {
+    expect(isNonEmptyString("")).toBe(false);
+    expect(isNonEmptyString("   ")).toBe(false);
+    expect(isNonEmptyString(null)).toBe(false);
+    expect(isNonEmptyString(123)).toBe(false);
+  });
+});
 
 describe("session threshold logic", () => {
   const MIN_SESSION_SECONDS = 3;
