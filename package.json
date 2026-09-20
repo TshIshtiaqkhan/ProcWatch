@@ -11,13 +11,18 @@
   "engines": {
     "node": ">=22.12.0"
   },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "build:frontend": "cd frontend && npm run build",
-    "build:backend": "echo 'No build step needed for JS backend'",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "node -e \"console.log('No build step needed for JS backend')\"",
     "build": "npm run build:frontend",
-    "start": "cd backend && npx electron .",
-    "dev": "cd backend && npx electron .",
-    "rebuild": "cd backend && npx -y @electron/rebuild",
+    "start": "npx electron backend/src/main.js",
+    "dev": "npx electron backend/src/main.js",
+    "rebuild": "npx @electron/rebuild -f -w better-sqlite3",
+    "test": "npm test --workspace=backend",
     "pack": "npm run build && npx electron-builder --dir",
     "dist": "npm run build && npx electron-builder"
   },
