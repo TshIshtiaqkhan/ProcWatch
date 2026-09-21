@@ -9,6 +9,7 @@ const {
 const path = require("path");
 const fs = require("fs");
 const { resolveAssetPath, formatDateString } = require("./utils/paths");
+const { isAllowedNavigationUrl } = require("./utils/security");
 const { getPool, initDatabase, closeDatabase, getAllSettings, purgeOldSessions } = require("./db");
 const {
   setActiveWinFn,
@@ -252,6 +253,17 @@ async function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  // Security: Restrict navigation to local app pages and disallow popups
+  mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
+    if (!isAllowedNavigationUrl(navigationUrl)) {
+      event.preventDefault();
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: "deny" };
   });
 
   setFocusMainWindow(mainWindow);
