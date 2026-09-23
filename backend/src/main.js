@@ -264,6 +264,29 @@ async function createWindow() {
     console.error("[RENDERER PROCESS GONE]", details);
   });
 
+  // Security: Prevent unauthorized navigation outside allowed local file or dev server URLs
+  mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
+    const isDev = process.env.NODE_ENV === "development";
+    const devUrl = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
+    try {
+      const parsedUrl = new URL(navigationUrl);
+      if (parsedUrl.protocol === "file:") return;
+      if (isDev) {
+        const parsedDevUrl = new URL(devUrl);
+        if (parsedUrl.origin === parsedDevUrl.origin) return;
+      }
+    } catch {}
+
+    event.preventDefault();
+    logger.warn(`Blocked navigation attempt to untrusted URL: ${navigationUrl}`);
+  });
+
+  // Security: Deny window creation / popups from renderer
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    logger.warn(`Blocked new window creation attempt to: ${url}`);
+    return { action: "deny" };
+  });
+
   // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
   mainWindow.setIcon(appIcon);
 
