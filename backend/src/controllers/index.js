@@ -70,7 +70,8 @@ async function getToday(_e, _payload, _ctx) {
       yesterdayIdleSeconds: yesterdayIdleResult.rows[0]?.seconds ?? 0,
     });
   } catch (err) {
-    return fail("QUERY_ERROR", String(err));
+    logger.error("getToday error:", err);
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -110,7 +111,7 @@ async function getPauseSummary(_e, _payload, _ctx) {
     });
   } catch (err) {
     logger.error("getPauseSummary error:", err);
-    return fail("QUERY_ERROR", String(err));
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -133,7 +134,8 @@ async function getRange(_e, payload, _ctx) {
     );
     return ok(result.rows);
   } catch (err) {
-    return fail("QUERY_ERROR", String(err));
+    logger.error("getRange error:", err);
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -176,7 +178,8 @@ async function getAppDetail(_e, payload, _ctx) {
 
     return ok({ daily: dailyResult.rows, titles: titlesResult.rows });
   } catch (err) {
-    return fail("QUERY_ERROR", String(err));
+    logger.error("getAppDetail error:", err);
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -191,7 +194,8 @@ async function pauseTracking(_e, _payload, ctx) {
     ctx.updateTrayMenu();
     return ok({ isPaused: true });
   } catch (err) {
-    return fail("PAUSE_ERROR", String(err));
+    logger.error("pauseTracking error:", err);
+    return fail("PAUSE_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -202,7 +206,8 @@ async function resumeTracking(_e, _payload, ctx) {
     ctx.updateTrayMenu();
     return ok({ isPaused: false });
   } catch (err) {
-    return fail("RESUME_ERROR", String(err));
+    logger.error("resumeTracking error:", err);
+    return fail("RESUME_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -210,7 +215,8 @@ function trackingStatus(_e, _payload, _ctx) {
   try {
     return ok({ isPaused: getIsPaused() });
   } catch (err) {
-    return fail("STATUS_ERROR", String(err));
+    logger.error("trackingStatus error:", err);
+    return fail("STATUS_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -220,7 +226,8 @@ async function getSettings(_e, _payload, _ctx) {
   try {
     return ok(getAllSettings());
   } catch (err) {
-    return fail("QUERY_ERROR", String(err));
+    logger.error("getSettings error:", err);
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -259,7 +266,8 @@ async function updateSettings(_e, payload, ctx) {
 
     return ok();
   } catch (err) {
-    return fail("UPDATE_ERROR", String(err));
+    logger.error("updateSettings error:", err);
+    return fail("UPDATE_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -333,7 +341,8 @@ async function exportData(_e, payload, ctx) {
 
     return ok({ path: dialogResult.filePath });
   } catch (err) {
-    return fail("EXPORT_ERROR", String(err));
+    logger.error("exportData error:", err);
+    return fail("EXPORT_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -352,7 +361,8 @@ async function clearAllData(_e, payload, _ctx) {
     await pool.query("DELETE FROM sessions");
     return ok();
   } catch (err) {
-    return fail("CLEAR_ERROR", String(err));
+    logger.error("clearAllData error:", err);
+    return fail("CLEAR_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -377,7 +387,8 @@ async function listCategories(_e, _payload, _ctx) {
     );
     return ok(result.rows);
   } catch (err) {
-    return fail("QUERY_ERROR", String(err));
+    logger.error("listCategories error:", err);
+    return fail("QUERY_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -413,7 +424,8 @@ async function updateCategory(_e, payload, _ctx) {
 
     return ok();
   } catch (err) {
-    return fail("UPDATE_ERROR", String(err));
+    logger.error("updateCategory error:", err);
+    return fail("UPDATE_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -426,7 +438,8 @@ async function removeCategory(_e, payload, _ctx) {
     await pool.query("DELETE FROM app_categories WHERE app_name = $1", [payload.appName]);
     return ok();
   } catch (err) {
-    return fail("DELETE_ERROR", String(err));
+    logger.error("removeCategory error:", err);
+    return fail("DELETE_ERROR", err.message || "An internal error occurred");
   }
 }
 
@@ -518,7 +531,8 @@ Comment=ProcWatch Application Usage & Productivity Tracker
     await setSetting("launch_on_login", String(payload.enabled));
     return ok();
   } catch (err) {
-    return fail("AUTOSTART_ERROR", String(err));
+    logger.error("setAutoStart error:", err);
+    return fail("AUTOSTART_ERROR", err.message || "An internal error occurred");
   }
 }
 
