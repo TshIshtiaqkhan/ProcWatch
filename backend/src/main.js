@@ -264,6 +264,23 @@ async function createWindow() {
     console.error("[RENDERER PROCESS GONE]", details);
   });
 
+  // Security: Prevent unauthorized window creation (e.g., target="_blank" or window.open)
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    logger.warn(`Security: Prevented window creation to ${url}`);
+    return { action: "deny" };
+  });
+
+  // Security: Restrict in-app navigation to authorized local files/dev server only
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const isDev = process.env.NODE_ENV === "development";
+    const devUrl = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
+    const isAllowed = isDev ? url.startsWith(devUrl) : url.startsWith("file:");
+    if (!isAllowed) {
+      event.preventDefault();
+      logger.warn(`Security: Prevented navigation to unauthorized URL ${url}`);
+    }
+  });
+
   // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
   mainWindow.setIcon(appIcon);
 
