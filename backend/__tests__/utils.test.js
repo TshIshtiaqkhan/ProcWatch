@@ -107,3 +107,47 @@ describe("session threshold logic", () => {
     expect(shouldDiscard(start, end)).toBe(false);
   });
 });
+
+// ─── isValidSettingValue ──────────────────────────────────────────────────────
+
+const { isValidSettingValue } = require("../src/validators");
+
+describe("isValidSettingValue", () => {
+  it("validates polling_interval_seconds boundaries", () => {
+    expect(isValidSettingValue("polling_interval_seconds", "5")).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", 5)).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", "1")).toBe(true);
+    expect(isValidSettingValue("polling_interval_seconds", "3600")).toBe(true);
+
+    expect(isValidSettingValue("polling_interval_seconds", "0")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "-10")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", "invalid")).toBe(false);
+    expect(isValidSettingValue("polling_interval_seconds", null)).toBe(false);
+  });
+
+  it("validates idle_threshold_seconds boundaries", () => {
+    expect(isValidSettingValue("idle_threshold_seconds", "90")).toBe(true);
+    expect(isValidSettingValue("idle_threshold_seconds", "5")).toBe(true);
+
+    expect(isValidSettingValue("idle_threshold_seconds", "4")).toBe(false);
+    expect(isValidSettingValue("idle_threshold_seconds", "-1")).toBe(false);
+  });
+
+  it("validates focus_session and retention settings", () => {
+    expect(isValidSettingValue("focus_session_duration_minutes", "25")).toBe(true);
+    expect(isValidSettingValue("focus_session_duration_minutes", "0")).toBe(false);
+    expect(isValidSettingValue("data_retention_days", "never")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", "30")).toBe(true);
+    expect(isValidSettingValue("data_retention_days", "invalid")).toBe(false);
+  });
+
+  it("validates boolean and enum settings", () => {
+    expect(isValidSettingValue("launch_on_login", "true")).toBe(true);
+    expect(isValidSettingValue("launch_on_login", "false")).toBe(true);
+    expect(isValidSettingValue("launch_on_login", "yes")).toBe(false);
+
+    expect(isValidSettingValue("focus_session_block_mode", "overlay")).toBe(true);
+    expect(isValidSettingValue("focus_session_block_mode", "strict")).toBe(true);
+    expect(isValidSettingValue("focus_session_block_mode", "block")).toBe(false);
+  });
+});
