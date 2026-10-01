@@ -3,7 +3,7 @@
 A fully offline, privacy-first desktop application for **Linux** and **Windows (10 & 11)** that tracks how much time you spend in each application, stores everything locally in SQLite, enforces daily app limits, and presents deep insights through a modern visual dashboard. Built with Electron and React.
 
 - **Version:** 1.3.0
-- **Platform target:** Linux (X11) & Windows (10 & 11), Desktop, Fully Offline
+- **Platform target:** Linux (X11 & Wayland) & Windows (10 & 11), Desktop, Fully Offline
 - **License:** MIT
 - **Status:** Stable
 
@@ -64,7 +64,13 @@ curl -fsSL https://raw.githubusercontent.com/TshIshtiaqkhan/ProcWatch/main/insta
 
 - 🔒 **100% Local & Private**: All activity stays strictly on your computer in an embedded SQLite database. Zero cloud sync, zero telemetry, no accounts, and no network requests.
 - ⚡ **Cross-Platform Tracking**:
-  - **Linux**: Active window detection via `xdotool`, `wmctrl`, and `xprop`.
+  - **Linux (X11)**: Active window detection via `xdotool`, `wmctrl`, and `xprop`.
+  - **Linux (Wayland)**: Compositor-specific backends with automatic detection:
+    - **GNOME 45+**: `org.gnome.Shell.Introspect` D-Bus API (zero-dependency).
+    - **KDE Plasma**: `kdotool` — the KDE equivalent of xdotool for Wayland.
+    - **Hyprland**: `hyprctl activewindow -j` (native JSON, sub-5ms).
+    - **Sway**: `swaymsg -t get_tree` (JSON tree with focused node).
+    - **Fallback**: `active-win` (xdotool) for XWayland apps on all compositors.
   - **Windows**: Zero-dependency native Win32 API bridge querying `GetForegroundWindow`, `GetWindowTextW`, and `GetWindowThreadProcessId` with sub-2ms latency. Crash-proof on modern Electron (no broken C++ `ref-napi` / `ffi-napi` pointer compression issues).
 - ⏱️ **Daily App Usage Limits & Budgets**:
   - Set daily time budgets for distracting applications (e.g. YouTube, Discord, games).
@@ -96,10 +102,11 @@ ProcWatch is organized as an **npm workspaces monorepo** with a single root `nod
   node -v
   ```
 - **Platform Prerequisites**:
-  - **Linux**: Active X11 session. Install required utilities:
+  - **Linux (X11)**: Active X11 session. Install required utilities:
     - *Debian / Ubuntu / Mint:* `sudo apt install -y xdotool wmctrl x11-utils`
     - *Fedora / RHEL:* `sudo dnf install -y xdotool wmctrl xorg-x11-utils`
     - *Arch Linux:* `sudo pacman -S --needed xdotool wmctrl xorg-xprop`
+  - **Linux (Wayland)**: No extra dependencies required for GNOME 45+, Hyprland, or Sway. For KDE Plasma, install [`kdotool`](https://github.com/jinliu/kdotool). For GNOME < 45 or unknown compositors, install `xdotool` for XWayland fallback.
   - **Windows**: Windows 10 or 11 with PowerShell (built-in).
 
 ### 1. Clone & Install Dependencies
@@ -159,7 +166,7 @@ npm run dist
 
 ## 🏗️ Monorepo Project Structure
 
-```
+```plaintext
 ProcWatch/
 ├── .github/
 │   └── workflows/

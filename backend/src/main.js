@@ -42,6 +42,10 @@ let tray = null;
 const trayIconDir = resolveAssetPath("assets", "icon");
 
 function getTrayIconPath() {
+  if (process.platform === "win32") {
+    const icoFile = path.join(trayIconDir, "icon.ico");
+    if (fs.existsSync(icoFile)) return icoFile;
+  }
   for (const size of ["32x32.png", "48x48.png", "64x64.png", "16x16.png", "256x256.png"]) {
     const iconFile = path.join(trayIconDir, size);
     if (fs.existsSync(iconFile)) {
@@ -125,14 +129,23 @@ function createTray() {
   const iconImage = getTrayIcon();
 
   try {
-    // On Linux AppIndicator, passing the string path directly is the most compatible
-    if (iconPath && fs.existsSync(iconPath)) {
-      tray = new Tray(iconPath);
+    if (process.platform === "win32") {
+      // On Windows, use .ico path if available, otherwise nativeImage (never pass PNG path directly)
+      if (iconPath && iconPath.endsWith(".ico") && fs.existsSync(iconPath)) {
+        tray = new Tray(iconPath);
+      } else {
+        tray = new Tray(iconImage);
+      }
     } else {
-      tray = new Tray(iconImage);
+      // On Linux AppIndicator, passing the string path directly is the most compatible
+      if (iconPath && fs.existsSync(iconPath)) {
+        tray = new Tray(iconPath);
+      } else {
+        tray = new Tray(iconImage);
+      }
     }
   } catch (err) {
-    logger.error("Failed to create Tray with path, trying NativeImage:", err);
+    logger.error("Failed to create Tray with primary method, trying NativeImage:", err);
     try {
       tray = new Tray(iconImage);
     } catch (fallbackErr) {
@@ -315,7 +328,7 @@ function syncAutoStart() {
 
   if (process.platform === "win32") {
     try {
-      if (app && typeof app.setLoginItemSettings === "function") {
+      if (app && typeof app.setLoginItemSettings === "function" && app.isPackaged) {
         app.setLoginItemSettings({
           openAtLogin: true,
           args: ["--hidden"],
@@ -380,11 +393,23 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     // Load active window tracker cross-platform:
     // - On Windows: zero-dependency Win32 PowerShell worker (avoids ref-napi crash on Electron 33)
-    // - On Linux/macOS: active-win
+    // - On Linux Wayland: compositor-specific D-Bus / CLI backends with active-win XWayland fallback
+    // - On Linux X11 / macOS: active-win (xdotool + xprop)
     try {
       if (process.platform === "win32") {
         const { getActiveWindow } = require("./models/windows.tracker");
         setActiveWinFn(getActiveWindow);
+      } else if (
+        process.platform === "linux" &&
+        (process.env.XDG_SESSION_TYPE === "wayland" || process.env.WAYLAND_DISPLAY)
+      ) {
+        const { getActiveWindow } = require("./models/wayland.tracker");
+        setActiveWinFn(getActiveWindow);
+        logger.info(
+          "[main] Wayland session detected — using Wayland tracker " +
+            `(XDG_SESSION_TYPE=${process.env.XDG_SESSION_TYPE || ""}, ` +
+            `WAYLAND_DISPLAY=${process.env.WAYLAND_DISPLAY || ""})`
+        );
       } else {
         const activeWin = require("active-win");
         setActiveWinFn(activeWin);

@@ -423,7 +423,7 @@ async function removeCategory(_e, payload, _ctx) {
       return fail("INVALID_INPUT", "appName is required");
     }
     const pool = getPool();
-    await pool.query("DELETE FROM app_categories WHERE app_name = $1", [payload.appName]);
+    await pool.query("DELETE FROM app_categories WHERE LOWER(app_name) = LOWER($1)", [payload.appName]);
     return ok();
   } catch (err) {
     return fail("DELETE_ERROR", String(err));
@@ -440,6 +440,7 @@ async function checkDeps(_e, _payload, _ctx) {
       wmctrl: true,
       sessionType: "windows",
       isWayland: false,
+      waylandCompositor: null,
     });
   }
 
@@ -454,13 +455,25 @@ async function checkDeps(_e, _payload, _ctx) {
   ]);
 
   const sessionType = process.env.XDG_SESSION_TYPE ?? "unknown";
+  const isWayland = sessionType === "wayland" || !!process.env.WAYLAND_DISPLAY;
+
+  // On Wayland sessions, detect which compositor is running so the frontend
+  // can display compositor-specific guidance (e.g. "install kdotool for KDE").
+  let waylandCompositor = null;
+  if (isWayland) {
+    try {
+      const { detectCompositor } = require("../models/wayland.tracker");
+      waylandCompositor = detectCompositor();
+    } catch {}
+  }
 
   return ok({
     platform: "linux",
     xdotool,
     wmctrl,
     sessionType,
-    isWayland: sessionType === "wayland",
+    isWayland,
+    waylandCompositor,
   });
 }
 
@@ -471,7 +484,7 @@ async function setAutoStart(_e, payload, ctx) {
     }
 
     if (process.platform === "win32") {
-      if (app && typeof app.setLoginItemSettings === "function") {
+      if (app && typeof app.setLoginItemSettings === "function" && app.isPackaged) {
         app.setLoginItemSettings({
           openAtLogin: payload.enabled,
           args: ["--hidden"],

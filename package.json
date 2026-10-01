@@ -103,7 +103,7 @@
           ]
         }
       ],
-      "icon": "frontend/assets/icon/256x256.png"
+      "icon": "frontend/assets/icon/icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -112,13 +112,17 @@
       "createStartMenuShortcut": true,
       "shortcutName": "ProcWatch"
     },
-    "asar": true
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ]
   },
   "dependencies": {
     "active-win": "^7.0.0",
     "better-sqlite3": "^12.11.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "electron-builder": "^26.0.0"
   }
 }
