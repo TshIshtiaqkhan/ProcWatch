@@ -1,4 +1,4 @@
-// 6-Color Categorical Charting Palette (from design.md specification)
+// 6-Color Categorical Charting Palette
 export const CHART_COLORS = [
   "#3b82f6", // Electric Blue
   "#22d3ee", // Cyan
