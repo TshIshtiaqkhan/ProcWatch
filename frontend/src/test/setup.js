@@ -15,6 +15,32 @@ export function createMockElectronAPI(overrides = {}) {
         yesterdayIdleSeconds: 300,
       },
     }),
+    getProductivityScore: vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        today: {
+          date: "2026-10-04",
+          score: 82,
+          productiveSeconds: 7200,
+          distractingSeconds: 1600,
+          neutralSeconds: 800,
+          totalSeconds: 9600,
+        },
+        yesterday: {
+          date: "2026-10-03",
+          score: 75,
+          productiveSeconds: 6000,
+          distractingSeconds: 2000,
+          neutralSeconds: 500,
+          totalSeconds: 8500,
+        },
+        scoreDiff: 7,
+        goal: 70,
+        currentStreak: 4,
+        bestStreak: 7,
+        goalMetToday: true,
+      },
+    }),
     getPauseSummary: vi.fn().mockResolvedValue({
       success: true,
       data: {
