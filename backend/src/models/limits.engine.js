@@ -1,9 +1,9 @@
+const { execFile } = require("child_process");
 const { Notification } = require("electron");
 const { getPool } = require("../db");
 const { logger } = require("../utils/logger");
 const { formatDateString, resolveAssetPath } = require("../utils/paths");
-
-let mainWindow = null;
+const { getActiveWindow } = require("../utils/window");
 
 // In-memory cache of configured active limits: Map<appName, { id, limitMinutes, warnAtPercent, isEnabled }>
 let limitsCache = null;
@@ -12,22 +12,7 @@ let limitsCache = null;
 const alertedToday = new Map();
 let currentDateStr = "";
 
-// ─── Window Reference ─────────────────────────────────────────────────────────
-
-function setMainWindow(win) {
-  mainWindow = win;
-}
-
-function getActiveWindow() {
-  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
-  try {
-    const { BrowserWindow } = require("electron");
-    const wins = BrowserWindow.getAllWindows();
-    return wins.length > 0 && !wins[0].isDestroyed() ? wins[0] : null;
-  } catch {
-    return null;
-  }
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function notifyRenderer(event, data) {
   const win = getActiveWindow();
@@ -195,8 +180,6 @@ async function toggleLimit(appName, isEnabled) {
   return { success: true };
 }
 
-const { execFile } = require("child_process");
-
 // ─── Notification Dispatcher ──────────────────────────────────────────────────
 
 function formatFriendlyMinutes(minutes) {
@@ -211,12 +194,7 @@ function sendDesktopNotification(title, body) {
   try {
     const iconPath = resolveAssetPath("assets", "icon", "256x256.png");
     if (Notification.isSupported()) {
-      const notif = new Notification({
-        title,
-        body,
-        icon: iconPath,
-        silent: false,
-      });
+      const notif = new Notification({ title, body, icon: iconPath, silent: false });
       notif.show();
     }
   } catch (err) {
@@ -231,7 +209,7 @@ function sendDesktopNotification(title, body) {
           logger.warn("notify-send execution notice:", err.message);
         }
       });
-    } catch (e) {
+    } catch {
       // ignore
     }
   } else if (process.platform === "win32") {
@@ -340,7 +318,6 @@ async function checkAppLimit(appName) {
 }
 
 module.exports = {
-  setMainWindow,
   getAllLimitsWithUsage,
   upsertLimit,
   deleteLimit,
