@@ -1,21 +1,6 @@
 const { spawn, execFile } = require("child_process");
 const { logger } = require("../utils/logger");
-
-/**
- * Normalizes an application name cross-platform:
- * - Strips trailing .exe (case-insensitive)
- * - Trims whitespace
- * - Fallbacks to "Unknown" if missing or invalid
- *
- * @param {string} rawName
- * @returns {string}
- */
-function normalizeAppName(rawName) {
-  if (!rawName || typeof rawName !== "string") return "Unknown";
-  let clean = rawName.trim();
-  clean = clean.replace(/\.exe$/i, "");
-  return clean || "Unknown";
-}
+const { normalizeAppName } = require("../utils/paths");
 
 // ─── Long-running PowerShell Subsystem ───────────────────────────────────────
 //
