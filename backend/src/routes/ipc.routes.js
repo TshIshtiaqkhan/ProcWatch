@@ -9,6 +9,7 @@ const limitsController = require("../controllers/limits.controller");
 function registerIpcRoutes(ctx) {
   // Usage queries
   ipcMain.handle("usage:getToday", (e, p) => controllers.getToday(e, p, ctx));
+  ipcMain.handle("productivity:getScore", (e, p) => controllers.getProductivityScore(e, p, ctx));
   ipcMain.handle("usage:getPauseSummary", (e, p) => controllers.getPauseSummary(e, p, ctx));
   ipcMain.handle("usage:getRange", (e, p) => controllers.getRange(e, p, ctx));
   ipcMain.handle("usage:getAppDetail", (e, p) => controllers.getAppDetail(e, p, ctx));
