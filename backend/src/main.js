@@ -27,6 +27,7 @@ const appIconPath = resolveAssetPath("assets", "icon", "256x256.png");
 
 let mainWindow = null;
 let appIcon = null; // Built once in app.whenReady() — reused by every createWindow call
+let isQuitting = false;
 
 // Cache settings for synchronous access during window creation
 let cachedSettings = {};
@@ -110,6 +111,22 @@ function buildTrayContextMenu(summaryItems = [], isPaused = false) {
       type: "separator",
     },
     {
+      label: "Start 25m Focus",
+      click: async () => {
+        try {
+          const { startFocusSession } = require("./models/focus.engine");
+          await startFocusSession(25);
+          showOrRestoreWindow();
+        } catch (err) {
+          logger.error("Tray start focus error:", err);
+          showOrRestoreWindow();
+        }
+      },
+    },
+    {
+      type: "separator",
+    },
+    {
       label: isPaused ? "Resume Tracking" : "Pause Tracking",
       click: () => {
         if (isPaused) {
@@ -169,6 +186,10 @@ function createTray() {
   updateTrayMenu();
 
   tray.on("click", () => {
+    showOrRestoreWindow();
+  });
+
+  tray.on("double-click", () => {
     showOrRestoreWindow();
   });
 }
@@ -325,7 +346,7 @@ async function createWindow() {
   }
 
   mainWindow.on("close", (e) => {
-    if (cachedSettings.close_to_tray === "true") {
+    if (!isQuitting && cachedSettings.close_to_tray === "true") {
       e.preventDefault();
       mainWindow?.hide();
     }
@@ -459,7 +480,6 @@ if (!gotTheLock) {
     app.quit();
   });
 
-  let isQuitting = false;
   app.on("before-quit", (e) => {
     if (isQuitting) return;
     e.preventDefault();
