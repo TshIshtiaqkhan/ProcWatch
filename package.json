@@ -22,7 +22,7 @@
     "start": "npx electron backend/src/main.js",
     "dev": "npx electron backend/src/main.js",
     "rebuild": "npx @electron/rebuild -f -w better-sqlite3",
-    "test": "npm test --workspace=backend",
+    "test": "npm test --workspace=backend && npm test --workspace=frontend",
     "pack": "npm run build && npx electron-builder --dir",
     "dist": "npm run build && npx electron-builder",
     "dist:linux": "npm run build && npx electron-builder --linux",
