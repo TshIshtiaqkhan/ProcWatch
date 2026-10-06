@@ -13,6 +13,7 @@ const {
   isActiveWinLoaded,
   invalidateSettingsCache,
 } = require("../models/tracker.engine");
+const { getProductivitySummary } = require("../models/productivity.engine");
 const { DEFAULT_SETTINGS, APP_ALIASES } = require("../configs");
 const { formatDateString } = require("../utils/paths");
 const { logger } = require("../utils/logger");
@@ -545,8 +546,19 @@ async function completeOnboarding(_e, _payload, ctx) {
   }
 }
 
+async function getProductivityScore(_e, _payload, _ctx) {
+  try {
+    const summary = await getProductivitySummary();
+    return ok(summary);
+  } catch (err) {
+    logger.error("getProductivityScore error:", err);
+    return fail("PRODUCTIVITY_ERROR", String(err));
+  }
+}
+
 module.exports = {
   getToday,
+  getProductivityScore,
   getPauseSummary,
   getRange,
   getAppDetail,
@@ -566,3 +578,4 @@ module.exports = {
   isFirstRun,
   completeOnboarding,
 };
+

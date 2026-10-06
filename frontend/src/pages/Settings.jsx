@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download, Target } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Trash2, Database, Sliders, Shield, Tag, Download, Target, Volume2, Bell, Flame } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useCategories } from "../hooks/useCategories";
 import { useAppLimits } from "../hooks/useAppLimits";
@@ -7,6 +7,7 @@ import { AppIcon } from "../components/ui/AppIcon";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
 import { AppLimitsSettings } from "../components/settings/AppLimitsSettings";
+import { playChime, SOUND_PRESETS } from "../lib/soundEngine";
 
 const SliderCard = ({ label, min, max, value, onChange, readoutTag, unit }) => {
   const [localVal, setLocalVal] = useState(value);
@@ -104,6 +105,11 @@ export function Settings() {
   const idleThreshold = Number(settings.idle_threshold_seconds ?? 90);
   const focusDuration = Number(settings.focus_session_duration_minutes ?? 25);
   const focusBreak = Number(settings.focus_session_break_minutes ?? 5);
+  const productivityGoal = Number(settings.productivity_score_goal ?? 70);
+  const productivityMinMinutes = Number(settings.productivity_min_minutes ?? 10);
+  const soundEnabled = settings.pomodoro_sound_enabled !== "false";
+  const soundType = settings.pomodoro_sound_type || "bell";
+  const soundVolume = Number(settings.pomodoro_sound_volume ?? 80);
 
   const showNotification = (msg, isError = false) => {
     setBannerNotice({ text: msg, isError });
@@ -230,6 +236,115 @@ export function Settings() {
             unit="m"
             readoutTag={`${focusBreak} min`}
             onChange={(v) => update({ focus_session_break_minutes: String(v) })}
+          />
+        </div>
+
+        {/* Audio Chime Controls */}
+        <div className="pt-3 border-t border-white/[0.06] space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-xs font-semibold text-[#f4f4f5] flex items-center gap-1.5">
+                <Bell size={13} className="text-[#31afd4]" />
+                Completion Audio Chime
+              </span>
+              <p className="text-[11px] text-[#71717a]">
+                Play gentle harmonic chime when focus or break sessions end
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => update({ pomodoro_sound_enabled: soundEnabled ? "false" : "true" })}
+              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                soundEnabled ? "bg-[#004fff]" : "bg-zinc-800 border border-zinc-700"
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                  soundEnabled ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {soundEnabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              {/* Preset Selector */}
+              <div className="bg-[#17171a] border border-[#27272a] rounded-xl p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-[#f4f4f5]">Chime Sound Tone</span>
+                  <button
+                    type="button"
+                    onClick={() => playChime(soundType, soundVolume)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-semibold text-white bg-[#004fff] hover:bg-[#31afd4] transition-all cursor-pointer shadow-[0_0_10px_rgba(0,79,255,0.35)]"
+                  >
+                    <Volume2 size={12} />
+                    Test Sound
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {Object.entries(SOUND_PRESETS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        update({ pomodoro_sound_type: key });
+                        playChime(key, soundVolume);
+                      }}
+                      className={`px-2.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer border text-center ${
+                        soundType === key
+                          ? "bg-[#004fff] text-white border-[#004fff]/80 shadow-[0_0_12px_rgba(0,79,255,0.3)]"
+                          : "bg-white/[0.03] text-[#a1a1aa] border-white/[0.08] hover:text-white hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Volume Slider */}
+              <SliderCard
+                label="Chime Volume"
+                min={10}
+                max={100}
+                value={soundVolume}
+                unit="%"
+                readoutTag={`${soundVolume}%`}
+                onChange={(v) => update({ pomodoro_sound_volume: String(v) })}
+              />
+            </div>
+          )}
+        </div>
+      </GlassCard>
+
+      {/* Daily Productivity & Streaks Goal */}
+      <GlassCard className="p-6 space-y-4" aria-label="Productivity goal calibration">
+        <div className="flex items-center gap-2.5 pb-2 border-b border-white/[0.06]">
+          <Flame size={16} className="text-amber-400" />
+          <h2 className="text-xs font-semibold text-[#a1a1aa] tracking-wider uppercase">
+            Daily Productivity &amp; Streaks Goal
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SliderCard
+            label="Productivity Score Target"
+            min={50}
+            max={95}
+            value={productivityGoal}
+            unit="%"
+            readoutTag={`Goal: ${productivityGoal}%`}
+            onChange={(v) => update({ productivity_score_goal: String(v) })}
+          />
+
+          <SliderCard
+            label="Streak Qualifying Activity"
+            min={5}
+            max={60}
+            value={productivityMinMinutes}
+            unit="m"
+            readoutTag={`${productivityMinMinutes} min`}
+            onChange={(v) => update({ productivity_min_minutes: String(v) })}
           />
         </div>
       </GlassCard>

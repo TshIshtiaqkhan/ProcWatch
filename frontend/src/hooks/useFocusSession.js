@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { playChime } from "../lib/soundEngine";
 
 export function useFocusSession() {
   const [state, setState] = useState("idle"); // 'idle' | 'running' | 'break' | 'completed'
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [totalBreakSeconds, setTotalBreakSeconds] = useState(300);
   const [distractions, setDistractions] = useState(0);
   const [durationMinutes, setDurationMinutes] = useState(25);
   const [sessionId, setSessionId] = useState(null);
@@ -12,6 +14,26 @@ export function useFocusSession() {
   const unsubDistractRef = useRef(null);
   const unsubCompleteRef = useRef(null);
   const cancelledRef = useRef(false);
+  const stateRef = useRef(state);
+  const soundSettingsRef = useRef({ enabled: true, type: "bell", volume: 80 });
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Load sound & break preferences
+  useEffect(() => {
+    if (!window.electronAPI?.getSettings) return;
+    window.electronAPI.getSettings().then((res) => {
+      if (res?.success && res.data) {
+        soundSettingsRef.current = {
+          enabled: res.data.pomodoro_sound_enabled !== "false",
+          type: res.data.pomodoro_sound_type || "bell",
+          volume: parseInt(res.data.pomodoro_sound_volume, 10) || 80,
+        };
+      }
+    });
+  }, []);
 
   // ── Countdown Timer ─────────────────────────────────────────────────────────
 
@@ -23,6 +45,12 @@ export function useFocusSession() {
         if (prev <= 1) {
           clearInterval(countdownRef.current);
           countdownRef.current = null;
+          if (stateRef.current === "break") {
+            if (soundSettingsRef.current.enabled) {
+              playChime(soundSettingsRef.current.type, soundSettingsRef.current.volume);
+            }
+            setState("idle");
+          }
           return 0;
         }
         return prev - 1;
@@ -59,6 +87,9 @@ export function useFocusSession() {
       setLastResult(data);
       setState("completed");
       setSessionId(null);
+      if (soundSettingsRef.current.enabled) {
+        playChime(soundSettingsRef.current.type, soundSettingsRef.current.volume);
+      }
     });
 
     return () => {
@@ -146,7 +177,18 @@ export function useFocusSession() {
   const startBreak = useCallback((breakMinutes) => {
     const mins = breakMinutes || 5;
     setState("break");
+    setTotalBreakSeconds(mins * 60);
     startCountdown(mins * 60);
+  }, [startCountdown]);
+
+  const extendBreak = useCallback((extraMinutes = 5) => {
+    const addSecs = extraMinutes * 60;
+    setTotalBreakSeconds((prev) => prev + addSecs);
+    setRemainingSeconds((prev) => {
+      const next = prev + addSecs;
+      startCountdown(next);
+      return next;
+    });
   }, [startCountdown]);
 
   const skipBreak = useCallback(() => {
@@ -159,6 +201,7 @@ export function useFocusSession() {
   return {
     state,
     remainingSeconds,
+    totalBreakSeconds,
     distractions,
     durationMinutes,
     sessionId,
@@ -167,6 +210,7 @@ export function useFocusSession() {
     stop,
     dismissResult,
     startBreak,
+    extendBreak,
     skipBreak,
   };
 }

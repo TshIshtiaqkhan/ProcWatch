@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Target, AlertTriangle, CheckCircle2, Coffee, Play, X, SkipForward } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useFocusSession } from "../hooks/useFocusSession";
+import { BreakOverlay } from "../components/focus/BreakOverlay";
 import { SummaryCard } from "../components/ui/SummaryCard";
 import { GlassCard } from "../components/ui/GlassCard";
 import { FocusHistoryChart } from "../components/charts/FocusHistoryChart";
@@ -80,6 +81,7 @@ export function Focus() {
   const {
     state,
     remainingSeconds,
+    totalBreakSeconds,
     distractions,
     durationMinutes,
     lastResult,
@@ -87,6 +89,7 @@ export function Focus() {
     stop,
     dismissResult,
     startBreak,
+    extendBreak,
     skipBreak,
   } = useFocusSession();
 
@@ -357,6 +360,16 @@ export function Focus() {
         </div>
         <FocusHistoryChart data={historyData} />
       </GlassCard>
+
+      {/* Ambient Break Screen Overlay */}
+      <BreakOverlay
+        isOpen={state === "break"}
+        remainingSeconds={remainingSeconds}
+        totalSeconds={totalBreakSeconds || breakDuration * 60}
+        onSkip={skipBreak}
+        onExtend={() => extendBreak(5)}
+        onComplete={skipBreak}
+      />
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import { useTodayData } from "../hooks/useTodayData";
 import { useAppLimits } from "../hooks/useAppLimits";
+import { useProductivityScore } from "../hooks/useProductivityScore";
 import { SummaryCard } from "../components/ui/SummaryCard";
 import { AppBarChart } from "../components/charts/AppBarChart";
 import { AppUsageList } from "../components/dashboard/AppUsageList";
 import { AppLimitsCard } from "../components/dashboard/AppLimitsCard";
+import { ProductivityScoreCard } from "../components/dashboard/ProductivityScoreCard";
 import { formatDuration } from "../lib/constants";
 import { LoadingState } from "../components/ui/LoadingState";
 import { GlassCard } from "../components/ui/GlassCard";
@@ -19,6 +21,7 @@ export function Today() {
   } = useTodayData();
 
   const { limits, loading: limitsLoading } = useAppLimits();
+  const productivity = useProductivityScore();
 
   // Fallback demo usage if no database records exist yet
   const demoUsage = [
@@ -101,6 +104,9 @@ export function Today() {
           </p>
         </div>
       </div>
+
+      {/* Daily Productivity Score & Streak Card */}
+      <ProductivityScoreCard {...productivity} />
 
       {/* Summary Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

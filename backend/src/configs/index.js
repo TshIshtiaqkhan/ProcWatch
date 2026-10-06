@@ -8,6 +8,12 @@ const DEFAULT_SETTINGS = {
   first_run_complete: "false",
   focus_session_duration_minutes: "25",
   focus_session_break_minutes: "5",
+  productivity_score_goal: "70",
+  productivity_min_minutes: "10",
+  pomodoro_sound_enabled: "true",
+  pomodoro_sound_type: "bell",
+  pomodoro_sound_volume: "80",
+  break_overlay_enabled: "true",
 };
 
 const DEFAULT_CATEGORIES = {
