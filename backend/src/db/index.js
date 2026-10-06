@@ -249,16 +249,31 @@ async function initDatabase() {
   } catch (err) {
     logger.error("Failed to open database, attempting recovery:", err.message);
     if (dbConnection) {
-      try { dbConnection.close(); } catch {}
+      try {
+        clearStmtCache();
+        dbConnection.close();
+      } catch {}
       dbConnection = null;
     }
 
     try {
-      const backupPath = `${dbPath}.corrupted-${Date.now()}`;
+      const backupSuffix = `.corrupted-${Date.now()}`;
+      const backupPath = `${dbPath}${backupSuffix}`;
       if (fs.existsSync(dbPath)) {
         fs.renameSync(dbPath, backupPath);
         logger.info(`Corrupted DB backed up to: ${backupPath}`);
       }
+
+      // Also clean up WAL and SHM companion files on Windows to prevent orphan logs corrupting fresh DB
+      const walPath = `${dbPath}-wal`;
+      const shmPath = `${dbPath}-shm`;
+      if (fs.existsSync(walPath)) {
+        try { fs.renameSync(walPath, `${walPath}${backupSuffix}`); } catch {}
+      }
+      if (fs.existsSync(shmPath)) {
+        try { fs.renameSync(shmPath, `${shmPath}${backupSuffix}`); } catch {}
+      }
+
       dbConnection = new Database(dbPath);
       dbConnection.pragma("journal_mode = WAL");
     } catch (recreateErr) {

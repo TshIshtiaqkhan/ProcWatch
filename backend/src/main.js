@@ -17,16 +17,16 @@ const {
   startTracking,
   stopTracking,
   setupPowerMonitor,
-} = require("./models");
+} = require("./models/tracker.engine");
 const { logger } = require("./utils/logger");
 const { registerIpcRoutes } = require("./routes/ipc.routes");
-const { setMainWindow: setFocusMainWindow } = require("./models/focus.engine");
-const { setMainWindow: setLimitsMainWindow } = require("./models/limits.engine");
+const { setMainWindow } = require("./utils/window");
 
 // Resolve app icon — works in both dev (project root) and packaged (asar) mode
 const appIconPath = resolveAssetPath("assets", "icon", "256x256.png");
 
 let mainWindow = null;
+let appIcon = null; // Built once in app.whenReady() — reused by every createWindow call
 
 // Cache settings for synchronous access during window creation
 let cachedSettings = {};
@@ -41,15 +41,29 @@ let tray = null;
 // Resolve tray icon directory
 const trayIconDir = resolveAssetPath("assets", "icon");
 
+let cachedTrayIconPath = undefined;
 function getTrayIconPath() {
+  if (cachedTrayIconPath !== undefined) return cachedTrayIconPath;
+  if (process.platform === "win32") {
+    const icoFile = path.join(trayIconDir, "icon.ico");
+    if (fs.existsSync(icoFile)) {
+      cachedTrayIconPath = icoFile;
+      return icoFile;
+    }
+  }
   for (const size of ["32x32.png", "48x48.png", "64x64.png", "16x16.png", "256x256.png"]) {
     const iconFile = path.join(trayIconDir, size);
     if (fs.existsSync(iconFile)) {
+      cachedTrayIconPath = iconFile;
       return iconFile;
     }
   }
   const fallback = path.resolve(__dirname, "..", "..", "frontend", "assets", "icon", "32x32.png");
-  if (fs.existsSync(fallback)) return fallback;
+  if (fs.existsSync(fallback)) {
+    cachedTrayIconPath = fallback;
+    return fallback;
+  }
+  cachedTrayIconPath = null;
   return null;
 }
 
@@ -125,14 +139,23 @@ function createTray() {
   const iconImage = getTrayIcon();
 
   try {
-    // On Linux AppIndicator, passing the string path directly is the most compatible
-    if (iconPath && fs.existsSync(iconPath)) {
-      tray = new Tray(iconPath);
+    if (process.platform === "win32") {
+      // On Windows, use .ico path if available, otherwise nativeImage (never pass PNG path directly)
+      if (iconPath && iconPath.endsWith(".ico") && fs.existsSync(iconPath)) {
+        tray = new Tray(iconPath);
+      } else {
+        tray = new Tray(iconImage);
+      }
     } else {
-      tray = new Tray(iconImage);
+      // On Linux AppIndicator, passing the string path directly is the most compatible
+      if (iconPath && fs.existsSync(iconPath)) {
+        tray = new Tray(iconPath);
+      } else {
+        tray = new Tray(iconImage);
+      }
     }
   } catch (err) {
-    logger.error("Failed to create Tray with path, trying NativeImage:", err);
+    logger.error("Failed to create Tray with primary method, trying NativeImage:", err);
     try {
       tray = new Tray(iconImage);
     } catch (fallbackErr) {
@@ -201,6 +224,28 @@ function updateTrayMenu() {
   }, 300);
 }
 
+// Build a multi-resolution icon once for best Linux/X11 compatibility
+function getAppIcon() {
+  if (appIcon) return appIcon;
+  const iconDir = resolveAssetPath("assets", "icon");
+  const iconSizes = ["16x16.png", "32x32.png", "48x48.png", "64x64.png", "128x128.png", "256x256.png", "512x512.png", "1024x1024.png"];
+  appIcon = nativeImage.createEmpty();
+  for (const size of iconSizes) {
+    const iconFile = path.join(iconDir, size);
+    if (fs.existsSync(iconFile)) {
+      const sizeImage = nativeImage.createFromPath(iconFile);
+      if (!sizeImage.isEmpty()) {
+        appIcon.addRepresentation({
+          width: sizeImage.getSize().width,
+          height: sizeImage.getSize().height,
+          buffer: sizeImage.toPNG(),
+        });
+      }
+    }
+  }
+  return appIcon;
+}
+
 // ─── Window ──────────────────────────────────────────────────────────────────
 
 async function createWindow() {
@@ -216,26 +261,11 @@ async function createWindow() {
     wasOpenedAtLogin;
 
   const shouldStartMinimized =
-    isExplicitlyHidden ||
-    (cachedSettings.first_run_complete === "true" && cachedSettings.start_minimized === "true");
+    !process.argv.includes("--show") &&
+    (isExplicitlyHidden ||
+      (cachedSettings.first_run_complete === "true" && cachedSettings.start_minimized === "true"));
 
-  // Build a multi-resolution icon for best Linux/X11 compatibility
-  const iconDir = resolveAssetPath("assets", "icon");
-  const iconSizes = ["16x16.png", "32x32.png", "48x48.png", "64x64.png", "128x128.png", "256x256.png", "512x512.png", "1024x1024.png"];
-  const appIcon = nativeImage.createEmpty();
-  for (const size of iconSizes) {
-    const iconFile = path.join(iconDir, size);
-    if (fs.existsSync(iconFile)) {
-      const sizeImage = nativeImage.createFromPath(iconFile);
-      if (!sizeImage.isEmpty()) {
-        appIcon.addRepresentation({
-          width: sizeImage.getSize().width,
-          height: sizeImage.getSize().height,
-          buffer: sizeImage.toPNG(),
-        });
-      }
-    }
-  }
+  const icon = getAppIcon();
 
   Menu.setApplicationMenu(null);
 
@@ -244,7 +274,7 @@ async function createWindow() {
     height: 800,
     show: !shouldStartMinimized,
     autoHideMenuBar: true,
-    icon: appIcon,
+    icon,
     backgroundColor: "#09090b",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -254,8 +284,7 @@ async function createWindow() {
     },
   });
 
-  setFocusMainWindow(mainWindow);
-  setLimitsMainWindow(mainWindow);
+  setMainWindow(mainWindow);
 
   mainWindow.webContents.on("console-message", (event, level, message, line, sourceId) => {
     console.log(`[RENDERER CONSOLE] [level ${level}] ${message} (${sourceId}:${line})`);
@@ -265,7 +294,7 @@ async function createWindow() {
   });
 
   // Explicitly set the icon after creation — ensures _NET_WM_ICON is set on X11
-  mainWindow.setIcon(appIcon);
+  mainWindow.setIcon(icon);
 
   const isDev = process.env.NODE_ENV === "development";
 
@@ -303,8 +332,7 @@ async function createWindow() {
   });
 
   mainWindow.on("closed", () => {
-    setFocusMainWindow(null);
-    setLimitsMainWindow(null);
+    setMainWindow(null);
     mainWindow = null;
   });
 }
@@ -315,7 +343,7 @@ function syncAutoStart() {
 
   if (process.platform === "win32") {
     try {
-      if (app && typeof app.setLoginItemSettings === "function") {
+      if (app && typeof app.setLoginItemSettings === "function" && app.isPackaged) {
         app.setLoginItemSettings({
           openAtLogin: true,
           args: ["--hidden"],
@@ -380,11 +408,23 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     // Load active window tracker cross-platform:
     // - On Windows: zero-dependency Win32 PowerShell worker (avoids ref-napi crash on Electron 33)
-    // - On Linux/macOS: active-win
+    // - On Linux Wayland: compositor-specific D-Bus / CLI backends with active-win XWayland fallback
+    // - On Linux X11 / macOS: active-win (xdotool + xprop)
     try {
       if (process.platform === "win32") {
         const { getActiveWindow } = require("./models/windows.tracker");
         setActiveWinFn(getActiveWindow);
+      } else if (
+        process.platform === "linux" &&
+        (process.env.XDG_SESSION_TYPE === "wayland" || process.env.WAYLAND_DISPLAY)
+      ) {
+        const { getActiveWindow } = require("./models/wayland.tracker");
+        setActiveWinFn(getActiveWindow);
+        logger.info(
+          "[main] Wayland session detected — using Wayland tracker " +
+            `(XDG_SESSION_TYPE=${process.env.XDG_SESSION_TYPE || ""}, ` +
+            `WAYLAND_DISPLAY=${process.env.WAYLAND_DISPLAY || ""})`
+        );
       } else {
         const activeWin = require("active-win");
         setActiveWinFn(activeWin);

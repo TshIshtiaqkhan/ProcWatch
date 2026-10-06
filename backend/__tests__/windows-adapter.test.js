@@ -116,5 +116,24 @@ describe("Windows System Dependency Checks", () => {
     expect(res.data.wmctrl).toBe(true);
     expect(res.data.isWayland).toBe(false);
   });
+
+  it("validates input for autostart payload", async () => {
+    const { setAutoStart } = require("../src/controllers");
+    const res = await setAutoStart(null, { enabled: "invalid" }, {});
+    expect(res.success).toBe(false);
+    expect(res.error.code).toBe("INVALID_INPUT");
+  });
+
+  it("matches process names case-insensitively for Windows processes", () => {
+    const rawWindowsProcesses = ["Code.exe", "DISCORD.EXE", "Spotify.exe", "Teams.exe"];
+    const normalized = rawWindowsProcesses.map(normalizeAppName);
+    
+    // Limits cache keys are always lower-case
+    const limitKeys = new Set(["code", "discord", "spotify", "teams"]);
+    for (const app of normalized) {
+      expect(limitKeys.has(app.toLowerCase())).toBe(true);
+    }
+  });
 });
+
 

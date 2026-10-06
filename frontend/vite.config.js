@@ -21,5 +21,10 @@ export default defineConfig({
     outDir: "dist",
     modulePreload: false,
   },
+  test: {
+    globals: true,
+    environment: "happy-dom",
+    setupFiles: "./src/test/setup.js",
+  },
 });
 

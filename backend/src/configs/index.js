@@ -8,7 +8,6 @@ const DEFAULT_SETTINGS = {
   first_run_complete: "false",
   focus_session_duration_minutes: "25",
   focus_session_break_minutes: "5",
-  focus_session_block_mode: "overlay",
 };
 
 const DEFAULT_CATEGORIES = {
@@ -53,4 +52,14 @@ const DEFAULT_CATEGORIES = {
   POWERPNT: "Productivity",
 };
 
-module.exports = { DEFAULT_SETTINGS, DEFAULT_CATEGORIES };
+// App name alias groups — keeps category/limit rules in sync across
+// desktop environments that report different names for the same app.
+const APP_ALIASES = {
+  "google-chrome":        ["Google-chrome", "google-chrome", "google-chrome-stable", "chrome"],
+  "google-chrome-stable": ["Google-chrome", "google-chrome", "google-chrome-stable", "chrome"],
+  "chrome":               ["Google-chrome", "google-chrome", "google-chrome-stable", "chrome"],
+  "whatsapp":             ["whatsapp-linux-app", "whatsapp"],
+  "whatsapp-linux-app":   ["whatsapp-linux-app", "whatsapp"],
+};
+
+module.exports = { DEFAULT_SETTINGS, DEFAULT_CATEGORIES, APP_ALIASES };

@@ -1,21 +1,6 @@
 const { spawn, execFile } = require("child_process");
 const { logger } = require("../utils/logger");
-
-/**
- * Normalizes an application name cross-platform:
- * - Strips trailing .exe (case-insensitive)
- * - Trims whitespace
- * - Fallbacks to "Unknown" if missing or invalid
- *
- * @param {string} rawName
- * @returns {string}
- */
-function normalizeAppName(rawName) {
-  if (!rawName || typeof rawName !== "string") return "Unknown";
-  let clean = rawName.trim();
-  clean = clean.replace(/\.exe$/i, "");
-  return clean || "Unknown";
-}
+const { normalizeAppName } = require("../utils/paths");
 
 // ─── Long-running PowerShell Subsystem ───────────────────────────────────────
 //
@@ -32,6 +17,7 @@ let spawnPromise = null;
 const PS_INIT_SCRIPT = `
 Add-Type @"
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -43,7 +29,69 @@ public class WinTracker {
     public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
     [DllImport("user32.dll")]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
+
+    public static string GetActiveWindowJson() {
+        IntPtr hwnd = GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) {
+            return "{}";
+        }
+
+        StringBuilder sb = new StringBuilder(1024);
+        GetWindowTextW(hwnd, sb, 1024);
+        string title = sb.ToString();
+
+        int pid = 0;
+        GetWindowThreadProcessId(hwnd, out pid);
+        string name = "";
+        string path = "";
+
+        if (pid > 0) {
+            try {
+                Process p = Process.GetProcessById(pid);
+                if (p != null) {
+                    name = p.ProcessName;
+
+                    // If ApplicationFrameHost (Windows 10/11 UWP wrapper), inspect child CoreWindow
+                    if (string.Equals(name, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase)) {
+                        IntPtr coreWindow = FindWindowEx(hwnd, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
+                        if (coreWindow != IntPtr.Zero) {
+                            int realPid = 0;
+                            GetWindowThreadProcessId(coreWindow, out realPid);
+                            if (realPid > 0 && realPid != pid) {
+                                try {
+                                    Process realProc = Process.GetProcessById(realPid);
+                                    if (realProc != null) {
+                                        name = realProc.ProcessName;
+                                        try { path = realProc.MainModule.FileName; } catch {}
+                                    }
+                                } catch {}
+                            }
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(path)) {
+                        try { path = p.MainModule.FileName; } catch {}
+                    }
+                }
+            } catch {}
+        }
+
+        string safeTitle = EscapeJson(title);
+        string safeName = EscapeJson(name);
+        string safePath = EscapeJson(path);
+
+        return string.Format("{{\\"title\\":\\"{0}\\",\\"processId\\":{1},\\"name\\\":\\"{2}\\",\\"path\\\":\\"{3}\\"}}",
+            safeTitle, pid, safeName, safePath);
+    }
+
+    private static string EscapeJson(string s) {
+        if (string.IsNullOrEmpty(s)) return "";
+        return s.Replace("\\\\", "\\\\\\\\").Replace("\\"", "\\\\\\"").Replace("\\r", "").Replace("\\n", " ");
+    }
 }
 "@
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -53,34 +101,7 @@ while ($true) {
     $line = [Console]::In.ReadLine()
     if ($line -eq $null) { break }
     try {
-        $hwnd = [WinTracker]::GetForegroundWindow()
-        if ($hwnd -eq [IntPtr]::Zero) {
-            [Console]::Out.WriteLine("{}")
-            continue
-        }
-        $sb = New-Object System.Text.StringBuilder 1024
-        [WinTracker]::GetWindowTextW($hwnd, $sb, 1024) | Out-Null
-        $title = $sb.ToString()
-        $pidVal = 0
-        [WinTracker]::GetWindowThreadProcessId($hwnd, [ref]$pidVal) | Out-Null
-        $name = ""
-        $path = ""
-        if ($pidVal -gt 0) {
-            try {
-                $p = [System.Diagnostics.Process]::GetProcessById($pidVal)
-                if ($p) {
-                    $name = $p.ProcessName
-                    try { $path = $p.MainModule.FileName } catch {}
-                }
-            } catch {}
-        }
-        $obj = @{
-            title = $title
-            processId = $pidVal
-            name = $name
-            path = $path
-        }
-        $json = $obj | ConvertTo-Json -Compress
+        $json = [WinTracker]::GetActiveWindowJson()
         [Console]::Out.WriteLine($json)
     } catch {
         [Console]::Out.WriteLine("{}")
@@ -147,13 +168,13 @@ function initPowerShellWorker() {
       // Send the initialization script
       psProcess.stdin.write(PS_INIT_SCRIPT + "\r\n");
 
-      // Timeout fallback in case compilation hangs
+      // Timeout fallback in case compilation hangs on cold start
       setTimeout(() => {
         if (!psReady) {
           logger.warn("[windows.tracker] PowerShell worker init timeout");
           resolve(false);
         }
-      }, 5000);
+      }, 15000);
     } catch (err) {
       logger.error("[windows.tracker] Failed to spawn PowerShell worker:", err);
       cleanupWorker();
@@ -188,29 +209,60 @@ function queryActiveWindowOnce() {
     const psCmd = `
       Add-Type @"
       using System;
+      using System.Diagnostics;
       using System.Runtime.InteropServices;
       using System.Text;
       public class Win {
           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
           [DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Unicode)] public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-          [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+          [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int lpdwProcessId);
+          [DllImport("user32.dll", SetLastError = true)] public static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
+          public static string Query() {
+              IntPtr h = GetForegroundWindow();
+              if (h == IntPtr.Zero) return "{}";
+              StringBuilder sb = new StringBuilder(1024);
+              GetWindowTextW(h, sb, 1024);
+              int pid = 0;
+              GetWindowThreadProcessId(h, out pid);
+              string name = "";
+              string path = "";
+              if (pid > 0) {
+                  try {
+                      Process p = Process.GetProcessById(pid);
+                      if (p != null) {
+                          name = p.ProcessName;
+                          if (string.Equals(name, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase)) {
+                              IntPtr cw = FindWindowEx(h, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
+                              if (cw != IntPtr.Zero) {
+                                  int rpid = 0;
+                                  GetWindowThreadProcessId(cw, out rpid);
+                                  if (rpid > 0 && rpid != pid) {
+                                      try {
+                                          Process rp = Process.GetProcessById(rpid);
+                                          if (rp != null) { name = rp.ProcessName; try { path = rp.MainModule.FileName; } catch {} }
+                                      } catch {}
+                                  }
+                              }
+                          }
+                          if (string.IsNullOrEmpty(path)) { try { path = p.MainModule.FileName; } catch {} }
+                      }
+                  } catch {}
+              }
+              string st = (sb.ToString() ?? "").Replace("\\\\", "\\\\\\\\").Replace("\\"", "\\\\\\"").Replace("\\r", "").Replace("\\n", " ");
+              string sn = (name ?? "").Replace("\\\\", "\\\\\\\\").Replace("\\"", "\\\\\\"");
+              string sp = (path ?? "").Replace("\\\\", "\\\\\\\\").Replace("\\"", "\\\\\\"");
+              return string.Format("{{\\"title\\":\\"{0}\\",\\"processId\\":{1},\\"name\\\":\\"{2}\\",\\"path\\\":\\"{3}\\"}}", st, pid, sn, sp);
+          }
       }
 "@
-      $h = [Win]::GetForegroundWindow()
-      if ($h -ne [IntPtr]::Zero) {
-          $sb = New-Object System.Text.StringBuilder 1024
-          [Win]::GetWindowTextW($h, $sb, 1024) | Out-Null
-          $pid = 0
-          [Win]::GetWindowThreadProcessId($h, [ref]$pid) | Out-Null
-          $p = [System.Diagnostics.Process]::GetProcessById($pid)
-          @{ title = $sb.ToString(); processId = $pid; name = $p.ProcessName; path = $p.MainModule.FileName } | ConvertTo-Json -Compress
-      }
+      [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+      [Console]::Out.WriteLine([Win]::Query())
     `;
 
     execFile(
       "powershell.exe",
       ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", psCmd],
-      { timeout: 3000, windowsHide: true },
+      { timeout: 5000, windowsHide: true },
       (err, stdout) => {
         if (err || !stdout.trim()) {
           return resolve(null);

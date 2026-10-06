@@ -185,7 +185,7 @@ export function MainLayout() {
       <main className="ml-[220px] h-screen overflow-y-auto z-10 relative">
         {!trackerReady && (
           <AlertBanner>
-            Tracking engine inactive — active-win native module requires X11 and xdotool.
+            Tracking engine initializing or inactive. Please verify background permissions.
           </AlertBanner>
         )}
         {trackerReady && isWayland && (

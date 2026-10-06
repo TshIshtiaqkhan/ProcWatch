@@ -1,39 +1,22 @@
 const { getPool, getSetting } = require("../db");
 const { logger } = require("../utils/logger");
+const { getActiveWindow } = require("../utils/window");
 
-let mainWindow = null;
-let focusState = "idle"; // 'idle' | 'running'
+let isRunning = false;
 let currentFocus = null; // { id, startedAt, durationMinutes, distractions, endsAt }
 let completionTimer = null;
 let lastDistractingApp = null; // track to avoid counting repeated polls of same app
 
-// ─── Window Reference ─────────────────────────────────────────────────────────
-
-function setMainWindow(win) {
-  mainWindow = win;
-}
-
-function getActiveWindow() {
-  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
-  try {
-    const { BrowserWindow } = require("electron");
-    const wins = BrowserWindow.getAllWindows();
-    return wins.length > 0 && !wins[0].isDestroyed() ? wins[0] : null;
-  } catch {
-    return null;
-  }
-}
-
 // ─── Getters ──────────────────────────────────────────────────────────────────
 
 function getActiveFocusSession() {
-  return focusState === "running" ? currentFocus : null;
+  return isRunning ? currentFocus : null;
 }
 
 // ─── Start / Stop ─────────────────────────────────────────────────────────────
 
 async function startFocusSession(durationMinutes) {
-  if (focusState === "running") {
+  if (isRunning) {
     throw new Error("A focus session is already running");
   }
 
@@ -57,7 +40,7 @@ async function startFocusSession(durationMinutes) {
     endsAt: endsAt.toISOString(),
   };
 
-  focusState = "running";
+  isRunning = true;
   lastDistractingApp = null;
 
   // Set completion timer
@@ -95,7 +78,7 @@ async function _completeSession() {
 
   logger.info(`Focus session completed: id=${currentFocus.id}, distractions=${currentFocus.distractions}`);
 
-  focusState = "idle";
+  isRunning = false;
   currentFocus = null;
   lastDistractingApp = null;
 
@@ -109,7 +92,7 @@ async function _completeSession() {
 }
 
 async function stopFocusSession() {
-  if (focusState !== "running" || !currentFocus) {
+  if (!isRunning || !currentFocus) {
     return { completed: false, distractions: 0, durationSeconds: 0 };
   }
 
@@ -137,7 +120,7 @@ async function stopFocusSession() {
 
   logger.info(`Focus session cancelled: id=${currentFocus.id}`);
 
-  focusState = "idle";
+  isRunning = false;
   currentFocus = null;
   lastDistractingApp = null;
 
@@ -147,7 +130,7 @@ async function stopFocusSession() {
 // ─── Status ───────────────────────────────────────────────────────────────────
 
 function getFocusStatus() {
-  if (focusState !== "running" || !currentFocus) {
+  if (!isRunning || !currentFocus) {
     return { state: "idle", remainingSeconds: 0, distractions: 0, startedAt: null, durationMinutes: 0, sessionId: null };
   }
 
@@ -190,7 +173,7 @@ async function getFocusHistory(startDate, endDate) {
 // ─── Distraction Detection ────────────────────────────────────────────────────
 
 async function checkDistraction(appName) {
-  if (focusState !== "running" || !currentFocus) {
+  if (!isRunning || !currentFocus) {
     return { isDistraction: false };
   }
 
@@ -251,7 +234,6 @@ async function checkDistraction(appName) {
 }
 
 module.exports = {
-  setMainWindow,
   getActiveFocusSession,
   startFocusSession,
   stopFocusSession,

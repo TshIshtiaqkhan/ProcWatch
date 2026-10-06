@@ -1,4 +1,3 @@
-const { getSetting } = require("../db");
 const {
   startFocusSession,
   stopFocusSession,
@@ -12,17 +11,16 @@ const { isValidDateString } = require("../validators");
 
 async function startFocus(_e, payload, _ctx) {
   try {
-    let duration = payload?.durationMinutes;
-    if (duration !== undefined && duration !== null) {
-      duration = Number(duration);
+    const raw = payload?.durationMinutes;
+    if (raw !== undefined && raw !== null) {
+      const duration = Number(raw);
       if (!Number.isInteger(duration) || duration < 1 || duration > 120) {
         return fail("INVALID_INPUT", "durationMinutes must be an integer between 1 and 120");
       }
-    } else {
-      duration = parseInt(getSetting("focus_session_duration_minutes"), 10) || 25;
+      return ok(await startFocusSession(duration));
     }
-    const result = await startFocusSession(duration);
-    return ok(result);
+    // No duration provided — engine reads the default from settings
+    return ok(await startFocusSession());
   } catch (err) {
     return fail("FOCUS_START_ERROR", String(err));
   }

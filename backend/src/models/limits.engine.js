@@ -1,9 +1,9 @@
+const { execFile } = require("child_process");
 const { Notification } = require("electron");
 const { getPool } = require("../db");
 const { logger } = require("../utils/logger");
 const { formatDateString, resolveAssetPath } = require("../utils/paths");
-
-let mainWindow = null;
+const { getActiveWindow } = require("../utils/window");
 
 // In-memory cache of configured active limits: Map<appName, { id, limitMinutes, warnAtPercent, isEnabled }>
 let limitsCache = null;
@@ -12,22 +12,7 @@ let limitsCache = null;
 const alertedToday = new Map();
 let currentDateStr = "";
 
-// ─── Window Reference ─────────────────────────────────────────────────────────
-
-function setMainWindow(win) {
-  mainWindow = win;
-}
-
-function getActiveWindow() {
-  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
-  try {
-    const { BrowserWindow } = require("electron");
-    const wins = BrowserWindow.getAllWindows();
-    return wins.length > 0 && !wins[0].isDestroyed() ? wins[0] : null;
-  } catch {
-    return null;
-  }
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function notifyRenderer(event, data) {
   const win = getActiveWindow();
@@ -172,7 +157,7 @@ async function deleteLimit(appName) {
     throw new Error("appName must be a non-empty string");
   }
   const pool = getPool();
-  await pool.query("DELETE FROM app_limits WHERE app_name = $1", [appName.trim()]);
+  await pool.query("DELETE FROM app_limits WHERE LOWER(app_name) = LOWER($1)", [appName.trim()]);
   invalidateLimitsCache();
   notifyRenderer("limits:updated");
   logger.info(`App limit deleted for: ${appName}`);
@@ -186,7 +171,7 @@ async function toggleLimit(appName, isEnabled) {
   const pool = getPool();
   const now = new Date().toISOString();
   await pool.query(
-    "UPDATE app_limits SET is_enabled = $1, updated_at = $2 WHERE app_name = $3",
+    "UPDATE app_limits SET is_enabled = $1, updated_at = $2 WHERE LOWER(app_name) = LOWER($3)",
     [isEnabled ? 1 : 0, now, appName.trim()]
   );
   invalidateLimitsCache();
@@ -194,8 +179,6 @@ async function toggleLimit(appName, isEnabled) {
   logger.info(`App limit toggled: ${appName} -> ${isEnabled ? "enabled" : "disabled"}`);
   return { success: true };
 }
-
-const { execFile } = require("child_process");
 
 // ─── Notification Dispatcher ──────────────────────────────────────────────────
 
@@ -211,19 +194,14 @@ function sendDesktopNotification(title, body) {
   try {
     const iconPath = resolveAssetPath("assets", "icon", "256x256.png");
     if (Notification.isSupported()) {
-      const notif = new Notification({
-        title,
-        body,
-        icon: iconPath,
-        silent: false,
-      });
+      const notif = new Notification({ title, body, icon: iconPath, silent: false });
       notif.show();
     }
   } catch (err) {
     logger.error("Electron desktop notification error:", err.message);
   }
 
-  // 2. Linux native notify-send fallback / guarantee (handles Portal notifications cleanly)
+  // 2. Platform native notification fallback / guarantee
   if (process.platform === "linux") {
     try {
       execFile("notify-send", ["-a", "ProcWatch", title, body], (err) => {
@@ -231,8 +209,29 @@ function sendDesktopNotification(title, body) {
           logger.warn("notify-send execution notice:", err.message);
         }
       });
-    } catch (e) {
+    } catch {
       // ignore
+    }
+  } else if (process.platform === "win32") {
+    // Windows PowerShell WinRT toast fallback if Electron Notification is unsupported (e.g. dev / portable)
+    try {
+      if (!Notification.isSupported()) {
+        const escapedTitle = title.replace(/'/g, "''");
+        const escapedBody = body.replace(/'/g, "''");
+        const psToast = `
+          [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+          [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+          $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02)
+          $nodes = $template.GetElementsByTagName("text")
+          $nodes.Item(0).AppendChild($template.CreateTextNode('${escapedTitle}')) | Out-Null
+          $nodes.Item(1).AppendChild($template.CreateTextNode('${escapedBody}')) | Out-Null
+          $toast = [Windows.UI.Notifications.ToastNotification]::new($template)
+          [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("ProcWatch").Show($toast)
+        `;
+        execFile("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", psToast], { windowsHide: true }, () => {});
+      }
+    } catch (winNotifErr) {
+      logger.warn("Windows toast fallback execution notice:", winNotifErr.message);
     }
   }
 }
@@ -259,9 +258,9 @@ async function checkAppLimit(appName) {
   const today = getTodayDateStr();
   const pool = getPool();
 
-  // Query today's accumulated duration for this specific app
+  // Query today's accumulated duration for this specific app (case-insensitive across platforms)
   const res = await pool.query(
-    "SELECT SUM(duration_seconds) as total_seconds FROM sessions WHERE date_local = $1 AND app_name = $2 AND is_idle = 0",
+    "SELECT SUM(duration_seconds) as total_seconds FROM sessions WHERE date_local = $1 AND LOWER(app_name) = LOWER($2) AND is_idle = 0",
     [today, limit.appName]
   );
 
@@ -319,7 +318,6 @@ async function checkAppLimit(appName) {
 }
 
 module.exports = {
-  setMainWindow,
   getAllLimitsWithUsage,
   upsertLimit,
   deleteLimit,
