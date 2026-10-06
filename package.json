@@ -86,6 +86,10 @@
         "xdotool",
         "wmctrl",
         "x11-utils"
+      ],
+      "fpm": [
+        "--provides=Procwatch",
+        "--provides=ProcWatch"
       ]
     },
     "win": {

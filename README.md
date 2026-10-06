@@ -2,7 +2,7 @@
 
 A fully offline, privacy-first desktop application for **Linux** and **Windows (10 & 11)** that tracks how much time you spend in each application, stores everything locally in SQLite, enforces daily app limits, and presents deep insights through a modern visual dashboard. Built with Electron and React.
 
-- **Version:** 1.3.0
+- **Version:** 1.4.0
 - **Platform target:** Linux (X11 & Wayland) & Windows (10 & 11), Desktop, Fully Offline
 - **License:** MIT
 - **Status:** Stable
@@ -17,10 +17,10 @@ You do **not** need Node.js or development tools to use ProcWatch. Choose the in
 
 Download the latest Windows build from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest):
 
-1. **NSIS Installer (`ProcWatch-Setup-1.3.0.exe`)**:
+1. **NSIS Installer (`ProcWatch-Setup-1.4.0.exe`)**:
    - Run the installer to install ProcWatch with desktop and start menu shortcuts.
    - Automatically supports launching in the background on system start.
-2. **Portable Executable (`ProcWatch-1.3.0.exe`)**:
+2. **Portable Executable (`ProcWatch-1.4.0.exe`)**:
    - Zero installation required. Simply download and double-click to run anywhere (USB drive, desktop, downloads).
 
 ---
@@ -44,14 +44,14 @@ curl -fsSL https://raw.githubusercontent.com/TshIshtiaqkhan/ProcWatch/main/insta
 ```
 
 #### Option 3: Debian / Ubuntu Package (`.deb`)
-1. Download `procwatch_1.3.0_amd64.deb` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
+1. Download `procwatch_1.4.0_amd64.deb` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest) or [Cloudsmith](https://cloudsmith.io/~ishtiaq-khan/repos/procwatch/packages/).
 2. Install via `apt` (automatically configures dependencies):
    ```bash
-   sudo apt install ./procwatch_1.3.0_amd64.deb
+   sudo apt install ./procwatch_1.4.0_amd64.deb
    ```
 
 #### Option 4: Universal Linux (`.AppImage`)
-1. Download `ProcWatch-1.3.0.AppImage` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest).
+1. Download `ProcWatch-1.4.0.AppImage` from [GitHub Releases](https://github.com/TshIshtiaqkhan/ProcWatch/releases/latest).
 2. Make it executable and run:
    ```bash
    chmod +x ProcWatch-*.AppImage
